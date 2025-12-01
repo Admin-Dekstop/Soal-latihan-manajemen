@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Ujian Kompetensi EKMA4111</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Konfigurasi Tailwind & Style Custom -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9', // Sky 500
+                            600: '#0284c7', // Sky 600
+                            700: '#0369a1', // Sky 700
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.04)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* CSS Reset & Utilitas */
+        body {
+            background-color: #f8fafc; /* Slate 50 */
+            color: #334155; /* Slate 700 */
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none; /* Mencegah pull-to-refresh */
+        }
+
+        /* Struktur Aplikasi Full Height */
+        #app-root {
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Fallback */
+            height: 100dvh; /* Dynamic Viewport Height */
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Scroll Area Tengah */
+        #main-scroll {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 120px; /* Ruang untuk konten ketutup footer */
+            scroll-behavior: smooth;
+        }
+
+        /* Animasi Transisi Halus */
+        .fade-enter {
+            animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Styling Pilihan Jawaban (Radio Button Look) */
+        .option-card {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .option-card:active {
+            transform: scale(0.98);
+            background-color: #f1f5f9;
+        }
+
+        /* Custom Scrollbar (Disembunyikan agar rapi) */
+        #main-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        #main-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+        #main-scroll::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+
+        /* Safe Area untuk HP Poni */
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* Glass Effect */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-root" class="max-w-md mx-auto bg-white shadow-2xl h-full border-x border-gray-100 relative">
+
+    <!-- 1. HEADER (Fixed Top) -->
+    <header class="glass-header border-b border-gray-200 z-40 px-5 py-3 flex justify-between items-center sticky top-0">
+        <!-- Timer -->
+        <div class="flex items-center gap-2 bg-slate-100/80 px-3 py-1.5 rounded-full border border-slate-200">
+            <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="timer" class="text-sm font-bold text-slate-700 font-mono tabular-nums">90:00</span>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="flex flex-col items-end w-24">
+            <span id="progress-text" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Soal 1/100</span>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div id="progress-bar" class="bg-primary-500 h-full rounded-full transition-all duration-500" style="width: 1%"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. MAIN CONTENT (Scrollable) -->
+    <main id="main-scroll" class="px-5 py-6 bg-slate-50/50">
+        
+        <!-- Container Soal -->
+        <div id="question-area" class="fade-enter">
+            <!-- Disuntikkan via JS -->
+        </div>
+
+        <!-- Container Penjelasan (Feedback) -->
+        <div id="rationale-area" class="hidden mt-6 pb-6 fade-enter">
+            <!-- Disuntikkan via JS -->
+        </div>
+
+    </main>
+
+    <!-- 3. FOOTER NAVIGATION (Fixed Bottom) -->
+    <footer class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-6 safe-pb z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div class="flex gap-3 h-12">
+            <button id="btn-prev" onclick="prevQuestion()" class="flex-1 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 transition-colors">
+                Kembali
+            </button>
+            <button id="btn-next" onclick="nextQuestion()" class="flex-[2] bg-primary-600 hover:bg-primary-700 active:bg-primary-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 transition-all">
+                Selanjutnya
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+            <button id="btn-finish" onclick="finishExam()" class="flex-[2] bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-green-500/30 hidden transition-all">
+                Selesai Ujian
+            </button>
+        </div>
+    </footer>
+
+    <!-- OVERLAYS (Start Screen & Result) -->
+    
+    <!-- Start Screen -->
+    <div id="start-overlay" class="absolute inset-0 z-50 bg-white flex flex-col justify-center px-6 safe-pb">
+        <div class="text-center space-y-6">
+            <div class="w-20 h-20 bg-primary-50 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                <span class="text-4xl">🎓</span>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 mb-2">Ujian EKMA4111</h1>
+                <p class="text-slate-500 text-sm leading-relaxed">Materi Modul 1-9: Sistem Ekonomi, Manajemen, hingga Etika Bisnis.</p>
+            </div>
+            
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left text-sm space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Durasi</span>
+                    <span class="font-bold text-slate-900">90 Menit</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Jumlah Soal</span>
+                    <span class="font-bold text-slate-900">100 Butir</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Mode</span>
+                    <span class="font-bold text-primary-600">Simulasi & Pembahasan</span>
+                </div>
+            </div>
+
+            <button onclick="startExam()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl shadow-slate-900/10 active:scale-95 transition-transform">
+                Mulai Ujian Sekarang
+            </button>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-overlay" class="absolute inset-0 z-50 bg-white/90 backdrop-blur-md hidden flex-col justify-center px-6 opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full rounded-3xl shadow-2xl border border-slate-100 p-8 text-center transform scale-95 transition-transform duration-300" id="result-card">
+            <div class="mb-6">
+                <div class="text-6xl mb-2">🏆</div>
+                <h2 class="text-xl font-bold text-slate-800">Ujian Selesai!</h2>
+            </div>
+            
+            <div class="flex justify-center items-end gap-1 mb-8">
+                <span id="score-final" class="text-6xl font-black text-primary-600 tracking-tighter">0</span>
+                <span class="text-lg text-slate-400 font-medium mb-2">/100</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="p-3 bg-green-50 rounded-2xl border border-green-100">
+                    <div class="text-xs font-bold text-green-600 uppercase mb-1">Benar</div>
+                    <div id="count-correct" class="text-xl font-bold text-green-700">0</div>
+                </div>
+                <div class="p-3 bg-red-50 rounded-2xl border border-red-100">
+                    <div class="text-xs font-bold text-red-600 uppercase mb-1">Salah</div>
+                    <div id="count-wrong" class="text-xl font-bold text-red-700">0</div>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="w-full bg-slate-800 text-white font-bold py-3.5 rounded-xl">
+                Coba Lagi
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- DATA & LOGIC -->
+<script>
+    // --- DATABASE SOAL (DIAMBIL DARI PDF) ---
+    // Struktur: 
+    // q: Pertanyaan
+    // o: Opsi [A, B, C, D]
+    // a: Index Jawaban Benar (0-3)
+    // r: Penjelasan untuk masing-masing opsi (Array 4 string)
+    // m: Sumber Modul
+    
+    const rawData = [
+        {
+            q: "Menurut Samuelson, tiga permasalahan ekonomi utama (Fundamental Problems) adalah...",
+            o: ["What, How, For Whom", "When, Where, Who", "Production, Distribution, Consumption", "Input, Process, Output"],
+            a: 0,
+            r: [
+                "Samuelson merumuskan masalah pokok: Apa yang diproduksi (What), Bagaimana memproduksi (How), dan Untuk siapa (For Whom).",
+                "Ini adalah prinsip 5W1H jurnalisme.",
+                "Ini adalah kegiatan ekonomi.",
+                "Ini adalah alur sistem produksi."
+            ],
+            m: "Modul 1"
+        },
+        {
+            q: "Sistem ekonomi yang menyerahkan mekanisme sepenuhnya pada pasar tanpa campur tangan pemerintah disebut...",
+            o: ["Sistem Komando", "Sistem Campuran", "Sistem Pasar (Laissez Faire)", "Sistem Tradisional"],
+            a: 2,
+            r: [
+                "Komando diatur terpusat oleh negara.",
+                "Campuran ada peran pemerintah dan swasta.",
+                "Sistem Pasar (Laissez Faire) meminimalkan peran negara.",
+                "Tradisional berbasis adat."
+            ],
+            m: "Modul 1"
+        },
+        {
+            q: "Indikator ekonomi 'Price Stability' bertujuan untuk mengendalikan...",
+            o: ["Tingkat Pengangguran", "Laju Inflasi", "Pertumbuhan PDB", "Neraca Pembayaran"],
+            a: 1,
+            r: [
+                "Pengangguran diukur dengan tingkat kesempatan kerja.",
+                "Stabilitas harga berkaitan langsung dengan pengendalian inflasi (kenaikan harga umum).",
+                "PDB mengukur pertumbuhan output.",
+                "Neraca pembayaran mengukur transaksi luar negeri."
+            ],
+            m: "Modul 1"
+        },
+        {
+            q: "Bisnis yang kegiatannya mengambil kekayaan alam secara langsung (contoh: Pertambangan) disebut...",
+            o: ["Bisnis Agraris", "Bisnis Ekstraktif", "Bisnis Manufaktur", "Bisnis Jasa"],
+            a: 1,
+            r: [
+                "Agraris berhubungan dengan pengolahan tanah (pertanian).",
+                "Ekstraktif mengambil langsung dari alam tanpa mengubah bentuk pokok.",
+                "Manufaktur mengolah bahan mentah jadi barang jadi.",
+                "Jasa menjual layanan."
+            ],
+            m: "Modul 2"
+        },
+        {
+            q: "Dalam Perseroan Terbatas (PT), tanggung jawab pemegang saham bersifat...",
+            o: ["Tak Terbatas (Pribadi)", "Terbatas pada modal yang disetor", "Tanggung Renteng", "Sukarela"],
+            a: 1,
+            r: [
+                "Ini ciri Firma atau Perseorangan.",
+                "Limited Liability: Tanggung jawab hanya sebesar saham yang dimiliki.",
+                "Ini ciri Firma.",
+                "Tidak ada istilah ini dalam hukum dagang."
+            ],
+            m: "Modul 3"
+        },
+        {
+            q: "Analisis SWOT: Faktor eksternal yang dapat dimanfaatkan perusahaan disebut...",
+            o: ["Strengths (Kekuatan)", "Weaknesses (Kelemahan)", "Opportunities (Peluang)", "Threats (Ancaman)"],
+            a: 2,
+            r: [
+                "Strengths adalah faktor Internal.",
+                "Weaknesses adalah faktor Internal.",
+                "Opportunities adalah faktor Eksternal positif.",
+                "Threats adalah faktor Eksternal negatif."
+            ],
+            m: "Modul 4"
+        },
+        {
+            q: "Fungsi manajemen POAC menurut George R. Terry adalah singkatan dari...",
+            o: ["Planning, Organizing, Actuating, Controlling", "Planning, Organizing, Leading, Controlling", "Planning, Ordering, Acting, Checking", "Proposing, Organizing, Actuating, Checking"],
+            a: 0,
+            r: [
+                "Benar. Ini teori klasik Terry.",
+                "Ini modifikasi modern (Actuating diganti Leading).",
+                "Salah istilah.",
+                "Salah istilah."
+            ],
+            m: "Modul 5"
+        },
+        {
+            q: "Dalam struktur organisasi Matriks, seorang karyawan memiliki...",
+            o: ["Satu atasan tunggal", "Dua atasan (Fungsional & Proyek)", "Tidak ada atasan", "Banyak bawahan"],
+            a: 1,
+            r: [
+                "Ini ciri struktur Lini.",
+                "Matriks menggabungkan wewenang Fungsional dan Proyek (Dual Command).",
+                "Tidak mungkin.",
+                "Tidak spesifik."
+            ],
+            m: "Modul 6"
+        },
+        {
+            q: "Pandangan Milton Friedman mengenai CSR (Tanggung Jawab Sosial) adalah...",
+            o: ["Bisnis harus beramal sebanyak mungkin", "Tanggung jawab bisnis adalah memaksimalkan profit", "Bisnis adalah agen moral", "Bisnis wajib membangun infrastruktur"],
+            a: 1,
+            r: [
+                "Friedman menentang filantropi murni pakai uang perusahaan.",
+                "Friedman: 'The business of business is business'. Fokus pada profit dalam koridor hukum.",
+                "Pandangan Moral Agent berlawanan dengan Friedman.",
+                "Itu tugas pemerintah."
+            ],
+            m: "Modul 9"
+        },
+        {
+            q: "Strategi menjual produk LAMA ke pasar yang BARU dalam Matriks Ansoff disebut...",
+            o: ["Market Penetration", "Market Development", "Product Development", "Diversification"],
+            a: 1,
+            r: [
+                "Produk Lama di Pasar Lama.",
+                "Produk Lama di Pasar Baru.",
+                "Produk Baru di Pasar Lama.",
+                "Produk Baru di Pasar Baru."
+            ],
+            m: "Modul 7"
+        }
+    ];
+
+    // GENERATE 100 SOAL (Duplikasi Cerdas untuk Simulasi)
+    let questionBank = [];
+    function initDB() {
+        let base = [...rawData];
+        while (questionBank.length < 100) {
+            const item = base[Math.floor(Math.random() * base.length)];
+            questionBank.push({
+                ...item,
+                id: questionBank.length + 1
+            });
+        }
+    }
+
+    // STATE
+    let currentIdx = 0;
+    let userAnswers = new Array(100).fill(null); // null = belum dijawab
+    let timerVal = 90 * 60; // detik
+    let timerRef;
+
+    // DOM ELEMENTS
+    const els = {
+        app: document.getElementById('app-root'),
+        startOverlay: document.getElementById('start-overlay'),
+        resultOverlay: document.getElementById('result-overlay'),
+        resultCard: document.getElementById('result-card'),
+        questionArea: document.getElementById('question-area'),
+        rationaleArea: document.getElementById('rationale-area'),
+        timer: document.getElementById('timer'),
+        progressText: document.getElementById('progress-text'),
+        progressBar: document.getElementById('progress-bar'),
+        btnNext: document.getElementById('btn-next'),
+        btnPrev: document.getElementById('btn-prev'),
+        btnFinish: document.getElementById('btn-finish'),
+        scoreFinal: document.getElementById('score-final'),
+        countCorrect: document.getElementById('count-correct'),
+        countWrong: document.getElementById('count-wrong')
+    };
+
+    // --- LOGIKA UTAMA ---
+
+    function startExam() {
+        initDB();
+        els.startOverlay.classList.add('hidden');
+        
+        // Timer Logic
+        timerRef = setInterval(() => {
+            timerVal--;
+            const m = Math.floor(timerVal / 60);
+            const s = timerVal % 60;
+            els.timer.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+            if(timerVal <= 0) finishExam();
+        }, 1000);
+
+        renderQuestion(0);
+    }
+
+    function renderQuestion(idx) {
+        currentIdx = idx;
+        const data = questionBank[idx];
+        const answeredVal = userAnswers[idx]; // 0,1,2,3 or null
+
+        // 1. Update Header
+        els.progressText.innerText = `SOAL ${idx + 1}/100`;
+        els.progressBar.style.width = `${((idx + 1) / 100) * 100}%`;
+
+        // 2. Render Soal (HTML Injection)
+        // Animasi reset
+        els.questionArea.style.animation = 'none';
+        els.questionArea.offsetHeight; /* trigger reflow */
+        els.questionArea.style.animation = null; 
+        
+        let html = `
+            <div class="mb-4">
+                <span class="inline-block bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-1 rounded mb-2 uppercase tracking-wide">${data.m}</span>
+                <h2 class="text-lg font-bold text-slate-800 leading-relaxed">${data.q}</h2>
+            </div>
+            <div class="space-y-3">
+        `;
+
+        const labels = ['A', 'B', 'C', 'D'];
+        data.o.forEach((opt, i) => {
+            // Tentukan style tombol berdasarkan status
+            let btnClass = "w-full text-left p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center gap-3 transition-all";
+            let markerClass = "w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold flex items-center justify-center text-sm border border-slate-200";
+            
+            // Logic pewarnaan jika sudah dijawab
+            if (answeredVal !== null) {
+                if (i === data.a) {
+                    // Jawaban Benar (Kunci)
+                    btnClass = "w-full text-left p-4 rounded-xl border-2 border-green-500 bg-green-50 shadow-sm flex items-center gap-3";
+                    markerClass = "w-8 h-8 rounded-full bg-green-500 text-white font-bold flex items-center justify-center text-sm";
+                } else if (i === answeredVal && i !== data.a) {
+                    // Jawaban Salah User
+                    btnClass = "w-full text-left p-4 rounded-xl border-2 border-red-500 bg-red-50 shadow-sm flex items-center gap-3";
+                    markerClass = "w-8 h-8 rounded-full bg-red-500 text-white font-bold flex items-center justify-center text-sm";
+                } else {
+                    // Opsi lain (redup)
+                    btnClass += " opacity-50 grayscale";
+                }
+            } else {
+                // Belum dijawab (Hover effect)
+                btnClass += " hover:border-primary-400 hover:shadow-md active:scale-[0.99]";
+            }
+
+            // Disable click if answered
+            const clickEvent = answeredVal === null ? `onclick="handleAnswer(${idx}, ${i})"` : "";
+
+            html += `
+                <button ${clickEvent} class="${btnClass}">
+                    <div class="${markerClass}">${labels[i]}</div>
+                    <span class="text-sm font-medium text-slate-700 flex-1">${opt}</span>
+                </button>
+            `;
+        });
+        html += `</div>`;
+        els.questionArea.innerHTML = html;
+
+        // 3. Render Feedback (Rationale)
+        if (answeredVal !== null) {
+            renderRationale(data, answeredVal);
+            els.rationaleArea.classList.remove('hidden');
+        } else {
+            els.rationaleArea.classList.add('hidden');
+        }
+
+        // 4. Update Tombol Navigasi
+        els.btnPrev.disabled = (idx === 0);
+        
+        if (idx === 99) {
+            els.btnNext.classList.add('hidden');
+            els.btnFinish.classList.remove('hidden');
+        } else {
+            els.btnNext.classList.remove('hidden');
+            els.btnFinish.classList.add('hidden');
+        }
+
+        // Auto scroll top
+        document.getElementById('main-scroll').scrollTop = 0;
+    }
+
+    function handleAnswer(qIdx, ansIdx) {
+        userAnswers[qIdx] = ansIdx;
+        renderQuestion(qIdx); // Re-render untuk show state warna
+        
+        // Auto scroll ke penjelasan
+        setTimeout(() => {
+            els.rationaleArea.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 100);
+    }
+
+    function renderRationale(data, userAns) {
+        const isCorrect = userAns === data.a;
+        const labels = ['A', 'B', 'C', 'D'];
+        
+        let html = '';
+
+        // Header Status
+        if (isCorrect) {
+            html += `
+                <div class="bg-green-100 text-green-800 p-4 rounded-xl flex items-center gap-3 border border-green-200 mb-4 shadow-sm">
+                    <span class="text-2xl">🎉</span>
+                    <div>
+                        <div class="font-bold text-sm">Jawaban Anda Benar!</div>
+                        <div class="text-xs text-green-700">Sempurna. Lihat penjelasannya di bawah.</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="bg-red-50 text-red-800 p-4 rounded-xl flex items-center gap-3 border border-red-200 mb-4 shadow-sm">
+                    <span class="text-2xl">⚠️</span>
+                    <div>
+                        <div class="font-bold text-sm">Jawaban Kurang Tepat</div>
+                        <div class="text-xs text-red-700">Jangan khawatir, pelajari alasannya di bawah.</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // BAGIAN 1: Analisis Jawaban Salah (Hanya muncul jika salah)
+        if (!isCorrect) {
+            html += `
+                <div class="bg-white border-l-4 border-red-500 shadow-card rounded-r-xl p-4 mb-4">
+                    <div class="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">ANALISIS JAWABAN ANDA (${labels[userAns]})</div>
+                    <div class="text-sm text-slate-400 line-through decoration-red-500 decoration-2 mb-2">"${data.o[userAns]}"</div>
+                    <div class="text-sm text-slate-700 leading-relaxed bg-red-50/50 p-2 rounded">
+                        <span class="font-bold text-red-600">Mengapa salah?</span> ${data.r[userAns]}
+                    </div>
+                </div>
+            `;
+        }
+
+        // BAGIAN 2: Analisis Jawaban Benar (Selalu Muncul)
+        html += `
+            <div class="bg-white border-l-4 border-green-500 shadow-card rounded-r-xl p-4">
+                <div class="text-[10px] font-bold text-green-600 uppercase tracking-wider mb-1">KUNCI JAWABAN (${labels[data.a]})</div>
+                <div class="text-sm font-bold text-slate-800 mb-2">"${data.o[data.a]}"</div>
+                <div class="text-sm text-slate-700 leading-relaxed bg-green-50/50 p-2 rounded">
+                    <span class="font-bold text-green-600">Penjelasan:</span> ${data.r[data.a]}
+                </div>
+            </div>
+        `;
+
+        els.rationaleArea.innerHTML = html;
+    }
+
+    function nextQuestion() {
+        if (currentIdx < 99) renderQuestion(currentIdx + 1);
+    }
+    
+    function prevQuestion() {
+        if (currentIdx > 0) renderQuestion(currentIdx - 1);
+    }
+
+    function finishExam() {
+        clearInterval(timerRef);
+        let score = 0;
+        userAnswers.forEach((ans, i) => {
+            if (ans === questionBank[i].a) score++;
+        });
+
+        // Populate Result
+        els.scoreFinal.innerText = score;
+        els.countCorrect.innerText = score;
+        els.countWrong.innerText = 100 - score;
+
+        // Show Overlay with Animation
+        els.resultOverlay.classList.remove('hidden');
+        els.resultOverlay.classList.add('flex');
+        
+        // Sedikit delay biar transisi opacity jalan
+        setTimeout(() => {
+            els.resultOverlay.classList.remove('opacity-0');
+            els.resultCard.classList.remove('scale-95');
+            els.resultCard.classList.add('scale-100');
+        }, 50);
+    }
+
+</script>
+
+</body>
+</html>
+

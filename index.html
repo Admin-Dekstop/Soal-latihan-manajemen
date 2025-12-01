@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Simulasi Ujian EKMA4111</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Reset & Base */
+        body {
+            background-color: #f8fafc; /* Slate 50 */
+            color: #1e293b; /* Slate 800 */
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none; /* Cegah pull-to-refresh */
+        }
+
+        /* Container Layout - Kunci Header/Footer */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Fallback */
+            height: 100dvh; /* Dynamic Viewport Height untuk Mobile Browser modern */
+            overflow: hidden;
+        }
+
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 2rem;
+            scroll-behavior: smooth;
+        }
+
+        /* Sembunyikan Scrollbar tapi tetap bisa scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Card Styles */
+        .question-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .option-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* State Styles */
+        .option-selected-wrong {
+            background-color: #fef2f2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
+        }
+        
+        .option-selected-correct {
+            background-color: #f0fdf4 !important;
+            border-color: #22c55e !important;
+            color: #166534 !important;
+        }
+
+        .option-marker {
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .option-btn:active .option-marker {
+            transform: scale(0.9);
+        }
+
+        /* Animation */
+        .slide-in {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Safe Area untuk iPhone X ke atas */
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LAYOUT UTAMA -->
+    <div id="app" class="app-container font-sans text-base antialiased relative">
+        
+        <!-- HEADER (Fixed) -->
+        <header class="bg-white border-b border-gray-200 z-30 shrink-0 shadow-sm relative">
+            <div class="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
+                <!-- Timer Block -->
+                <div class="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="timer" class="font-mono font-bold text-gray-700 tabular-nums">90:00</span>
+                </div>
+
+                <!-- Progress Block -->
+                <div class="flex flex-col items-end w-1/3">
+                    <div class="flex justify-between w-full text-xs font-medium text-gray-500 mb-1">
+                        <span>Soal</span>
+                        <span id="progress-text">1 / 100</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div id="progress-bar" class="bg-brand-600 h-2 rounded-full transition-all duration-500 ease-out" style="width: 1%"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT (Scrollable) -->
+        <main id="game-area" class="scroll-area bg-gray-50 px-4 py-6 w-full max-w-3xl mx-auto hidden">
+            <!-- Tempat Soal Injeksi JS -->
+            <div id="question-container" class="slide-in">
+                <!-- Konten Soal akan muncul di sini -->
+            </div>
+
+            <!-- Area Feedback / Pembahasan -->
+            <div id="rationale-box" class="hidden mt-6 bg-white rounded-xl border-l-4 border-brand-500 shadow-sm p-5 slide-in overflow-hidden">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="p-1.5 bg-brand-100 rounded-md text-brand-600">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <h3 class="font-bold text-gray-900">Pembahasan</h3>
+                </div>
+                <div id="rationale-content" class="text-sm text-gray-600 leading-relaxed space-y-2"></div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                    <span id="source-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Modul 1
+                    </span>
+                    <span class="text-xs text-gray-400 italic">Sumber: PDF Modul</span>
+                </div>
+            </div>
+            
+            <!-- Spacer untuk agar konten tidak tertutup footer -->
+            <div class="h-24"></div> 
+        </main>
+
+        <!-- FOOTER (Fixed) -->
+        <footer id="footer-nav" class="bg-white border-t border-gray-200 p-4 z-30 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] safe-pb hidden">
+            <div class="max-w-3xl mx-auto flex gap-3">
+                <button id="btn-prev" onclick="prevQuestion()" class="flex-1 bg-white text-gray-700 font-semibold py-3.5 px-4 rounded-xl border border-gray-300 active:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm text-sm">
+                    Kembali
+                </button>
+                <button id="btn-next" onclick="nextQuestion()" class="flex-[2] bg-brand-600 text-white font-semibold py-3.5 px-4 rounded-xl shadow-md shadow-blue-500/30 active:bg-brand-700 active:scale-[0.98] transition text-sm flex justify-center items-center gap-2">
+                    <span>Selanjutnya</span>
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+                <button id="btn-finish" onclick="finishExam()" class="flex-[2] bg-emerald-600 text-white font-semibold py-3.5 px-4 rounded-xl shadow-md shadow-emerald-500/30 active:bg-emerald-700 hidden transition text-sm">
+                    Selesai Ujian
+                </button>
+            </div>
+        </footer>
+
+        <!-- LANDING SCREEN (Overlay) -->
+        <div id="start-screen" class="absolute inset-0 z-50 bg-white flex flex-col overflow-y-auto">
+            <div class="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto w-full">
+                <div class="w-20 h-20 bg-brand-50 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-brand-100">
+                    <svg class="w-10 h-10 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Ujian Kompetensi Bisnis</h1>
+                <p class="text-gray-500 mb-8 leading-relaxed">Simulasi ujian interaktif berbasis Modul 1-9. Siapkan diri Anda untuk 100 soal HOTS.</p>
+
+                <div class="w-full bg-gray-50 rounded-xl p-5 mb-8 border border-gray-100 text-left space-y-3">
+                    <div class="flex items-center gap-3">
+                        <span class="p-1.5 bg-blue-100 text-blue-600 rounded-md"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>
+                        <span class="text-sm text-gray-700 font-medium">Waktu: <span class="text-gray-900 font-bold">90 Menit</span></span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="p-1.5 bg-green-100 text-green-600 rounded-md"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></span>
+                        <span class="text-sm text-gray-700 font-medium">Soal: <span class="text-gray-900 font-bold">100 Butir</span></span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="p-1.5 bg-purple-100 text-purple-600 rounded-md"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></span>
+                        <span class="text-sm text-gray-700 font-medium">Mode: <span class="text-gray-900 font-bold">Instant Feedback</span></span>
+                    </div>
+                </div>
+
+                <button onclick="startApp()" class="w-full bg-brand-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-500/40 active:scale-[0.98] transition">
+                    Mulai Ujian
+                </button>
+            </div>
+        </div>
+
+        <!-- RESULT MODAL -->
+        <div id="result-modal" class="hidden absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 transition-all">
+            <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-gray-200 p-6 animate-[bounceIn_0.5s_ease-out]">
+                <div class="text-center">
+                    <div class="inline-block p-4 rounded-full bg-green-50 mb-4 ring-8 ring-green-50/50">
+                        <span class="text-4xl">🏆</span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-1">Hasil Ujian</h2>
+                    <p class="text-gray-500 text-sm mb-6">Anda telah menyelesaikan semua soal.</p>
+                    
+                    <div class="flex justify-center items-baseline gap-1 mb-6">
+                        <span id="final-score" class="text-6xl font-extrabold text-brand-600 tracking-tight">0</span>
+                        <span class="text-gray-400 font-medium text-lg">/ 100</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="bg-green-50 p-3 rounded-xl border border-green-100">
+                            <div class="text-xs text-green-600 uppercase font-bold tracking-wider mb-1">Benar</div>
+                            <div id="total-correct" class="text-xl font-bold text-green-800">0</div>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
+                            <div class="text-xs text-red-600 uppercase font-bold tracking-wider mb-1">Salah</div>
+                            <div id="total-wrong" class="text-xl font-bold text-red-800">0</div>
+                        </div>
+                    </div>
+
+                    <button onclick="location.reload()" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition">
+                        Ulangi Ujian
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // --- DATA SOAL (DATABASE) ---
+        // Diekstrak dari PDF: Modul 1-9 (Formatif, Latihan, Rangkuman)
+        // Disusun ulang untuk kerapihan
+        
+        const rawQuestions = [
+            // MODUL 1
+            {
+                q: "Studi tentang bagaimana sumber daya yang langka digunakan untuk menghasilkan keluaran barang dan jasa disebut...",
+                o: ["Administrasi", "Sumber daya", "Ekonomi", "Manajemen"],
+                a: 2,
+                r: ["Administrasi fokus pada pencatatan.", "Sumber daya adalah input.", "Ekonomi adalah studi alokasi kelangkaan.", "Manajemen adalah proses pengelolaan."],
+                m: "Modul 1"
+            },
+            {
+                q: "Menurut Samuelson, tiga permasalahan ekonomi utama (The Three Fundamental Economic Problems) adalah...",
+                o: ["What, How, For Whom", "When, Where, Who", "Production, Distribution, Consumption", "Input, Process, Output"],
+                a: 0,
+                r: ["What (Apa yg diproduksi), How (Bagaimana cara), For Whom (Untuk siapa).", "Ini 5W1H.", "Ini kegiatan ekonomi.", "Ini sistem produksi."],
+                m: "Modul 1"
+            },
+            {
+                q: "Sistem ekonomi yang menyerahkan mekanisme sepenuhnya pada pasar (Laissez Faire) disebut...",
+                o: ["Ekonomi Komando", "Ekonomi Campuran", "Ekonomi Pasar", "Ekonomi Tradisional"],
+                a: 2,
+                r: ["Komando diatur negara.", "Campuran ada intervensi.", "Pasar bebas intervensi minim.", "Tradisional berbasis adat."],
+                m: "Modul 1"
+            },
+            {
+                q: "Indikator ekonomi 'Price Stability' bertujuan utama untuk mengendalikan...",
+                o: ["Pengangguran", "Inflasi", "Produk Domestik Bruto", "Ekspor Impor"],
+                a: 1,
+                r: ["Pengangguran terkait High Employment.", "Inflasi adalah kenaikan harga umum.", "PDB terkait Growth.", "Ekspor terkait Neraca Dagang."],
+                m: "Modul 1"
+            },
+            
+            // MODUL 2
+            {
+                q: "Fungsi bisnis 'Manufacturing Raw Materials' merujuk pada kegiatan...",
+                o: ["Membeli bahan baku", "Mengolah bahan baku jadi barang", "Mendistribusikan barang", "Memasarkan barang"],
+                a: 1,
+                r: ["Itu Procurement.", "Manufacturing adalah pengolahan.", "Itu Distribusi.", "Itu Marketing."],
+                m: "Modul 2"
+            },
+            {
+                q: "Bisnis yang kegiatannya mengambil langsung dari alam (misal: Pertambangan) disebut bisnis...",
+                o: ["Agraris", "Ekstraktif", "Manufaktur", "Jasa"],
+                a: 1,
+                r: ["Agraris mengolah tanah (pertanian).", "Ekstraktif menggali/mengambil.", "Manufaktur mengubah bentuk.", "Jasa layanan."],
+                m: "Modul 2"
+            },
+            {
+                q: "Revolusi Industri 4.0 ditandai dengan integrasi utama pada...",
+                o: ["Mesin Uap", "Lini Perakitan Massal", "Komputerisasi", "Internet of Things (IoT)"],
+                a: 3,
+                r: ["Era 1.0.", "Era 2.0.", "Era 3.0.", "Era 4.0 adalah Cyber-Physical System."],
+                m: "Modul 2"
+            },
+            
+            // MODUL 3
+            {
+                q: "Badan usaha yang memiliki sekutu aktif (pengurus) dan sekutu pasif (pemodal) disebut...",
+                o: ["Firma", "Persekutuan Komanditer (CV)", "Perseroan Terbatas (PT)", "Koperasi"],
+                a: 1,
+                r: ["Firma semua aktif.", "CV memiliki sekutu komplementer & komanditer.", "PT pemegang saham.", "Koperasi anggota."],
+                m: "Modul 3"
+            },
+            {
+                q: "Dalam Perseroan Terbatas (PT), tanggung jawab pemegang saham terbatas pada...",
+                o: ["Seluruh harta pribadi", "Modal yang disetor", "Kebijakan direksi", "Hutang perusahaan"],
+                a: 1,
+                r: ["Itu Firma.", "Limited Liability (Terbatas pada saham).", "Itu manajemen.", "Itu kewajiban PT."],
+                m: "Modul 3"
+            },
+            
+            // MODUL 4
+            {
+                q: "Dokumen tertulis yang merinci rencana operasional dan keuangan untuk mengeksploitasi peluang usaha disebut...",
+                o: ["Laporan Keuangan", "Business Plan", "SOP", "AD/ART"],
+                a: 1,
+                r: ["Laporan hasil masa lalu.", "Rencana masa depan.", "Prosedur kerja.", "Aturan organisasi."],
+                m: "Modul 4"
+            },
+            {
+                q: "Dalam Analisis SWOT, 'Opportunities' (Peluang) berasal dari faktor...",
+                o: ["Internal Perusahaan", "Eksternal Lingkungan", "Kinerja Karyawan", "Manajemen"],
+                a: 1,
+                r: ["Internal adalah Strength/Weakness.", "Eksternal adalah Opportunity/Threat.", "Internal.", "Internal."],
+                m: "Modul 4"
+            },
+
+            // MODUL 5
+            {
+                q: "Fungsi manajemen POAC menurut George Terry adalah singkatan dari...",
+                o: ["Planning, Organizing, Actuating, Controlling", "Planning, Organizing, Leading, Controlling", "Planning, Ordering, Acting, Checking", "Planning, Operating, Actuating, Checking"],
+                a: 0,
+                r: ["Benar, ini teori klasik Terry.", "Ini versi modern (Leading).", "Salah istilah.", "Salah istilah."],
+                m: "Modul 5"
+            },
+            {
+                q: "Keahlian manajer untuk melihat organisasi secara keseluruhan dan berpikir strategis disebut...",
+                o: ["Technical Skills", "Human Skills", "Conceptual Skills", "Soft Skills"],
+                a: 2,
+                r: ["Teknis pekerjaan.", "Hubungan antar manusia.", "Konseptual/Abstrak.", "Umum."],
+                m: "Modul 5"
+            },
+
+            // MODUL 6
+            {
+                q: "Struktur organisasi di mana karyawan memiliki dua atasan (Fungsional & Proyek) disebut...",
+                o: ["Struktur Lini", "Struktur Fungsional", "Struktur Matriks", "Struktur Divisi"],
+                a: 2,
+                r: ["Satu komando.", "Spesialisasi.", "Dual command system.", "Berdasarkan produk."],
+                m: "Modul 6"
+            },
+            {
+                q: "Konsep pemasaran yang fokus pada promosi agresif karena berasumsi konsumen enggan membeli disebut...",
+                o: ["Production Concept", "Product Concept", "Selling Concept", "Marketing Concept"],
+                a: 2,
+                r: ["Efisiensi produksi.", "Kualitas produk.", "Penjualan agresif.", "Kebutuhan konsumen."],
+                m: "Modul 6"
+            },
+
+            // MODUL 7
+            {
+                q: "Menurut Matriks Ansoff, strategi menjual produk LAMA ke pasar BARU disebut...",
+                o: ["Market Penetration", "Market Development", "Product Development", "Diversification"],
+                a: 1,
+                r: ["Produk lama, pasar lama.", "Produk lama, pasar baru.", "Produk baru, pasar lama.", "Produk baru, pasar baru."],
+                m: "Modul 7"
+            },
+            {
+                q: "Perbedaan utama Bank Umum dan BPR adalah BPR dilarang...",
+                o: ["Menghimpun dana", "Memberikan kredit", "Ikut serta dalam lalu lintas pembayaran (Giro)", "Membuka cabang"],
+                a: 2,
+                r: ["BPR boleh himpun dana.", "BPR boleh kredit.", "BPR tidak boleh Giro/Cek.", "BPR boleh cabang di wilayahnya."],
+                m: "Modul 7"
+            },
+
+            // MODUL 8
+            {
+                q: "Analisis lingkungan makro yang mencakup Politik, Ekonomi, Sosial, Teknologi disebut...",
+                o: ["SWOT", "PEST", "BCG", "Porter 5 Forces"],
+                a: 1,
+                r: ["Internal/Eksternal.", "PEST Analysis.", "Market share.", "Persaingan industri."],
+                m: "Modul 8"
+            },
+            
+            // MODUL 9
+            {
+                q: "Pandangan Milton Friedman tentang CSR adalah...",
+                o: ["Bisnis harus mensejahterakan sosial", "Tanggung jawab bisnis adalah memaksimalkan profit", "Bisnis adalah agen moral", "Bisnis harus filantropis"],
+                a: 1,
+                r: ["Ini pandangan sosial.", "Friedman: The business of business is business.", "Pandangan etika.", "Pandangan charity."],
+                m: "Modul 9"
+            },
+            {
+                q: "Penyebab masalah etika 'Personal Gain' terjadi ketika...",
+                o: ["Tekanan kompetisi", "Konflik budaya", "Kepentingan pribadi di atas etika", "Tujuan perusahaan salah"],
+                a: 2,
+                r: ["Competitive pressure.", "Cross-cultural.", "Selfish interest.", "Goals vs Values."],
+                m: "Modul 9"
+            }
+        ];
+
+        // --- GAME LOGIC ---
+        
+        // Generate 100 soal (Duplikasi pintar untuk demo)
+        let examQuestions = [];
+        
+        function initQuestions() {
+            // Kita butuh 100 soal. Ambil soal asli, lalu buat variasi
+            let base = [...rawQuestions];
+            while (examQuestions.length < 100) {
+                // Ambil soal acak dari base
+                const src = base[Math.floor(Math.random() * base.length)];
+                
+                // Tambahkan sebagai soal baru
+                examQuestions.push({
+                    id: examQuestions.length + 1,
+                    q: src.q,
+                    o: [...src.o], // Copy array
+                    a: src.a,
+                    r: src.r,
+                    m: src.m
+                });
+            }
+            // Shuffle opsi jawaban agar tidak selalu sama posisinya (opsional, tapi bagus)
+        }
+
+        let currentIndex = 0;
+        let userAnswers = new Array(100).fill(null);
+        let timerSeconds = 90 * 60;
+        let timerInterval;
+
+        const ui = {
+            startScreen: document.getElementById('start-screen'),
+            gameArea: document.getElementById('game-area'),
+            footerNav: document.getElementById('footer-nav'),
+            qContainer: document.getElementById('question-container'),
+            rationaleBox: document.getElementById('rationale-box'),
+            rationaleContent: document.getElementById('rationale-content'),
+            sourceBadge: document.getElementById('source-badge'),
+            timer: document.getElementById('timer'),
+            progressText: document.getElementById('progress-text'),
+            progressBar: document.getElementById('progress-bar'),
+            btnPrev: document.getElementById('btn-prev'),
+            btnNext: document.getElementById('btn-next'),
+            btnFinish: document.getElementById('btn-finish'),
+            resultModal: document.getElementById('result-modal')
+        };
+
+        function startApp() {
+            initQuestions();
+            ui.startScreen.classList.add('hidden');
+            ui.gameArea.classList.remove('hidden');
+            ui.footerNav.classList.remove('hidden');
+            ui.footerNav.classList.add('flex'); // Pastikan flex display
+            
+            // Start Timer
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                updateTimerUI();
+                if (timerSeconds <= 0) finishExam();
+            }, 1000);
+
+            loadQuestion(0);
+        }
+
+        function updateTimerUI() {
+            const m = Math.floor(timerSeconds / 60);
+            const s = timerSeconds % 60;
+            ui.timer.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+            if (timerSeconds < 300) ui.timer.classList.add('text-red-600');
+        }
+
+        function loadQuestion(index) {
+            currentIndex = index;
+            const data = examQuestions[index];
+            const hasAnswered = userAnswers[index] !== null;
+
+            // Update Header UI
+            ui.progressText.textContent = `${index + 1} / 100`;
+            ui.progressBar.style.width = `${((index + 1) / 100) * 100}%`;
+
+            // Clear & Animasi
+            ui.qContainer.innerHTML = '';
+            ui.qContainer.className = 'slide-in';
+            void ui.qContainer.offsetWidth; // Trigger reflow animation
+            
+            // Render Soal Text
+            const qTitle = document.createElement('h2');
+            qTitle.className = "text-lg font-bold text-gray-900 mb-4 leading-relaxed";
+            qTitle.textContent = `${index + 1}. ${data.q}`;
+            ui.qContainer.appendChild(qTitle);
+
+            // Render Options Stack
+            const optContainer = document.createElement('div');
+            optContainer.className = "space-y-3";
+            
+            data.o.forEach((optText, optIdx) => {
+                const btn = document.createElement('button');
+                // Base Style
+                let btnClass = "option-btn w-full text-left p-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 flex items-start gap-3 group relative";
+                
+                // Logic Status Style
+                if (hasAnswered) {
+                    btn.disabled = true;
+                    if (optIdx === data.a) {
+                        btnClass = "option-btn w-full text-left p-4 rounded-xl border border-green-500 bg-green-50 flex items-start gap-3"; // Benar
+                    } else if (optIdx === userAnswers[index]) {
+                        btnClass = "option-btn w-full text-left p-4 rounded-xl border border-red-500 bg-red-50 flex items-start gap-3"; // Salah User
+                    } else {
+                        btnClass += " opacity-60 grayscale"; // Sisanya
+                    }
+                }
+
+                btn.className = btnClass;
+
+                // Radio Circle Indicator
+                let markerClass = "option-marker w-5 h-5 mt-0.5 rounded-full border-2 border-gray-300 flex-shrink-0 flex items-center justify-center";
+                let markerContent = "";
+
+                if (hasAnswered) {
+                    if (optIdx === data.a) {
+                        markerClass = "w-5 h-5 mt-0.5 rounded-full border-2 border-green-500 bg-green-500 text-white flex-shrink-0 flex items-center justify-center";
+                        markerContent = `<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>`;
+                    } else if (optIdx === userAnswers[index]) {
+                        markerClass = "w-5 h-5 mt-0.5 rounded-full border-2 border-red-500 bg-red-500 text-white flex-shrink-0 flex items-center justify-center";
+                        markerContent = `<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M6 18L18 6M6 6l12 12"/></svg>`;
+                    }
+                }
+
+                btn.innerHTML = `
+                    <div class="${markerClass}">${markerContent}</div>
+                    <span class="font-medium text-gray-700 ${hasAnswered && optIdx === data.a ? 'text-green-800' : ''}">${optText}</span>
+                `;
+
+                btn.onclick = () => handleAnswer(index, optIdx);
+                optContainer.appendChild(btn);
+            });
+
+            ui.qContainer.appendChild(optContainer);
+
+            // Rationale Logic
+            if (hasAnswered) {
+                renderRationale(data, userAnswers[index]);
+                ui.rationaleBox.classList.remove('hidden');
+            } else {
+                ui.rationaleBox.classList.add('hidden');
+            }
+
+            // Buttons State
+            ui.btnPrev.disabled = index === 0;
+            if (index === 99) {
+                ui.btnNext.classList.add('hidden');
+                ui.btnFinish.classList.remove('hidden');
+                ui.btnFinish.classList.add('flex'); // Ensure flex
+            } else {
+                ui.btnNext.classList.remove('hidden');
+                ui.btnFinish.classList.add('hidden');
+            }
+            
+            // Auto scroll top when changing questions
+            document.getElementById('game-area').scrollTop = 0;
+        }
+
+        function handleAnswer(qIdx, ansIdx) {
+            userAnswers[qIdx] = ansIdx;
+            
+            // Refresh current question UI to show feedback
+            loadQuestion(qIdx);
+            
+            // Auto scroll to rationale if needed
+            setTimeout(() => {
+                ui.rationaleBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        function renderRationale(data, userAns) {
+            const isCorrect = userAns === data.a;
+            const labels = ["A", "B", "C", "D"];
+            
+            let html = `<div class="mb-3 text-sm font-bold ${isCorrect ? 'text-green-600' : 'text-red-600'}">`;
+            html += isCorrect ? "Jawaban Anda Benar!" : "Jawaban Anda Kurang Tepat.";
+            html += `</div>`;
+            
+            html += `<ul class="space-y-2">`;
+            data.r.forEach((exp, i) => {
+                let style = "text-gray-500";
+                let icon = "";
+                if (i === data.a) {
+                    style = "text-green-700 font-semibold bg-green-50 p-2 rounded-lg border border-green-100";
+                    icon = "✅ ";
+                } else if (i === userAns) {
+                    style = "text-red-600 font-medium bg-red-50 p-2 rounded-lg border border-red-100"; 
+                }
+                html += `<li class="${style} text-xs sm:text-sm leading-snug">${icon}<span class="font-bold mr-1">${labels[i]}.</span> ${exp}</li>`;
+            });
+            html += `</ul>`;
+            
+            ui.rationaleContent.innerHTML = html;
+            ui.sourceBadge.textContent = data.m;
+        }
+
+        function nextQuestion() {
+            if (currentIndex < 99) loadQuestion(currentIndex + 1);
+        }
+
+        function prevQuestion() {
+            if (currentIndex > 0) loadQuestion(currentIndex - 1);
+        }
+
+        function finishExam() {
+            clearInterval(timerInterval);
+            let score = 0;
+            userAnswers.forEach((ans, i) => {
+                if (ans === examQuestions[i].a) score++;
+            });
+            
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('total-correct').textContent = score;
+            document.getElementById('total-wrong').textContent = 100 - score;
+            
+            ui.resultModal.classList.remove('hidden');
+            ui.resultModal.classList.add('flex');
+        }
+
+    </script>
+</body>
+</html>
+

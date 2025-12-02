@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Ujian Kompetensi EKMA4111 (Level Lanjut)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1' },
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.04)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { background-color: #f8fafc; color: #334155; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+        #app-root { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; position: relative; }
+        #main-scroll { flex: 1; overflow-y: auto; padding-bottom: 120px; scroll-behavior: smooth; }
+        .fade-enter { animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .option-card:active { transform: scale(0.99); background-color: #f1f5f9; }
+        .glass-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+</head>
+<body>
+
+<div id="app-root" class="max-w-md mx-auto bg-white shadow-2xl h-full border-x border-gray-100 relative">
+
+    <!-- HEADER -->
+    <header class="glass-header border-b border-gray-200 z-40 px-5 py-3 flex justify-between items-center sticky top-0">
+        <div class="flex items-center gap-2 bg-slate-100/80 px-3 py-1.5 rounded-full border border-slate-200">
+            <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="timer" class="text-sm font-bold text-slate-700 font-mono tabular-nums">90:00</span>
+        </div>
+        <div class="flex flex-col items-end w-24">
+            <span id="progress-text" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Soal 1/100</span>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div id="progress-bar" class="bg-primary-500 h-full rounded-full transition-all duration-500" style="width: 1%"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main id="main-scroll" class="px-5 py-6 bg-slate-50/50">
+        <div id="question-area" class="fade-enter"></div>
+        <div id="rationale-area" class="hidden mt-6 pb-6 fade-enter"></div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-6 safe-pb z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div class="flex gap-3 h-12">
+            <button id="btn-prev" onclick="prevQuestion()" class="flex-1 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 transition-colors">Kembali</button>
+            <button id="btn-next" onclick="nextQuestion()" class="flex-[2] bg-primary-600 hover:bg-primary-700 active:bg-primary-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 transition-all">Selanjutnya <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></button>
+            <button id="btn-finish" onclick="finishExam()" class="flex-[2] bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-green-500/30 hidden transition-all">Selesai Ujian</button>
+        </div>
+    </footer>
+
+    <!-- OVERLAYS -->
+    <div id="start-overlay" class="absolute inset-0 z-50 bg-white flex flex-col justify-center px-6 safe-pb">
+        <div class="text-center space-y-6">
+            <div class="w-20 h-20 bg-primary-50 rounded-3xl flex items-center justify-center mx-auto shadow-sm"><span class="text-4xl">📚</span></div>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 mb-2">Ujian EKMA4111</h1>
+                <p class="text-slate-500 text-sm leading-relaxed">100 Soal Tersulit dari Modul 1-9.<br>Sistem Ekonomi, Manajemen, hingga Etika Bisnis.</p>
+            </div>
+            <button onclick="startExam()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl shadow-slate-900/10 active:scale-95 transition-transform">Mulai Ujian</button>
+        </div>
+    </div>
+
+    <div id="result-overlay" class="absolute inset-0 z-50 bg-white/90 backdrop-blur-md hidden flex-col justify-center px-6 opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full rounded-3xl shadow-2xl border border-slate-100 p-8 text-center transform scale-95 transition-transform duration-300" id="result-card">
+            <div class="mb-6"><div class="text-6xl mb-2">🏆</div><h2 class="text-xl font-bold text-slate-800">Hasil Ujian</h2></div>
+            <div class="flex justify-center items-end gap-1 mb-8">
+                <span id="score-final" class="text-6xl font-black text-primary-600 tracking-tighter">0</span><span class="text-lg text-slate-400 font-medium mb-2">/100</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="p-3 bg-green-50 rounded-2xl border border-green-100"><div class="text-xs font-bold text-green-600 uppercase mb-1">Benar</div><div id="count-correct" class="text-xl font-bold text-green-700">0</div></div>
+                <div class="p-3 bg-red-50 rounded-2xl border border-red-100"><div class="text-xs font-bold text-red-600 uppercase mb-1">Salah</div><div id="count-wrong" class="text-xl font-bold text-red-700">0</div></div>
+            </div>
+            <button onclick="location.reload()" class="w-full bg-slate-800 text-white font-bold py-3.5 rounded-xl">Ulangi Ujian</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- DATABASE 100 SOAL LENGKAP (MODUL 1-9) ---
+const rawData = [
+    // MODUL 1: Sistem Ekonomi (1-10)
+    {
+        q: "Menurut Gilarso (1992), sistem yang membatasi campur tangan pemerintah seminimal mungkin dan menyerahkan keputusan pada mekanisme pasar disebut...",
+        o: ["Sistem Ekonomi Komando", "Sistem Ekonomi Pasar (Laissez Faire)", "Sistem Ekonomi Campuran", "Sistem Ekonomi Syariah"],
+        a: 1,
+        r: ["Pemerintah memegang kendali penuh.", "Benar. Laissez faire menekankan kebebasan individu dan mekanisme pasar.", "Pemerintah dan swasta bekerja sama.", "Berlandaskan prinsip agama."],
+        m: "Modul 1"
+    },
+    {
+        q: "Indikator 'Ease of Doing Business' (EoDB) yang dikeluarkan oleh Bank Dunia mengukur...",
+        o: ["Tingkat korupsi suatu negara", "Kemudahan regulasi dalam menjalankan usaha", "Jumlah hutang luar negeri", "Tingkat inflasi tahunan"],
+        a: 1,
+        r: ["Itu Indeks Persepsi Korupsi.", "Benar. EoDB mengukur seberapa simpel regulasi bisnis di suatu negara.", "Itu Rasio Hutang.", "Itu CPI (Consumer Price Index)."],
+        m: "Modul 1"
+    },
+    {
+        q: "Dalam sistem ekonomi syariah, kebutuhan yang bersifat primer dan mendasar bagi kehidupan agama dan dunia disebut...",
+        o: ["Dharuriyyat", "Hajiyyat", "Tahsiniyyat", "Muamalah"],
+        a: 0,
+        r: ["Benar. Dharuriyyat adalah kebutuhan asasi/primer.", "Hajiyyat adalah kebutuhan sekunder.", "Tahsiniyyat adalah kebutuhan pelengkap/tersier.", "Muamalah adalah interaksi sosial."],
+        m: "Modul 1"
+    },
+    {
+        q: "Fase siklus bisnis di mana ekonomi mulai menurun, pengangguran meningkat, dan pendapatan masyarakat turun disebut...",
+        o: ["Prosperity", "Recovery", "Recession", "Depression"],
+        a: 2,
+        r: ["Prosperity adalah masa puncak kemakmuran.", "Recovery adalah masa pemulihan.", "Benar. Resesi adalah fase kontraksi ekonomi.", "Depresi adalah resesi yang sangat parah dan panjang."],
+        m: "Modul 1"
+    },
+    {
+        q: "Siapa yang merumuskan tiga masalah ekonomi pokok: What, How, dan For Whom?",
+        o: ["Adam Smith", "Paul Samuelson", "Karl Marx", "David Ricardo"],
+        a: 1,
+        r: ["Bapak Ekonomi Klasik.", "Benar. Samuelson merumuskan 3 masalah fundamental tersebut.", "Bapak Sosialisme.", "Teori Keunggulan Komparatif."],
+        m: "Modul 1"
+    },
+    {
+        q: "Tujuan ekonomi makro 'Price Stability' bertujuan utama untuk mengendalikan...",
+        o: ["Suku bunga bank", "Nilai tukar mata uang", "Tingkat inflasi", "Jumlah uang beredar"],
+        a: 2,
+        r: ["Alat kebijakan moneter.", "Terkait perdagangan internasional.", "Benar. Stabilitas harga identik dengan pengendalian inflasi.", "Alat kebijakan moneter."],
+        m: "Modul 1"
+    },
+    {
+        q: "Sistem ekonomi yang struktur perekonomiannya digambarkan seperti piramid dengan komando terpusat adalah...",
+        o: ["Sistem Pasar", "Sistem Tradisional", "Sistem Komando", "Sistem Campuran"],
+        a: 2,
+        r: ["Struktur desentralisasi.", "Berbasis adat.", "Benar. Komando (Sosialis) bersifat sentralistik/piramidal.", "Gabungan pasar dan komando."],
+        m: "Modul 1"
+    },
+    {
+        q: "Doktrin 'Laissez Faire' (Leave us alone) yang berkembang di Eropa abad ke-19 merupakan dasar dari...",
+        o: ["Kapitalisme", "Sosialisme", "Komunisme", "Merkantilisme"],
+        a: 0,
+        r: ["Benar. Laissez faire adalah inti kapitalisme pasar bebas.", "Menentang pasar bebas.", "Bentuk ekstrim sosialisme.", "Mementingkan ekspor dan cadangan emas negara."],
+        m: "Modul 1"
+    },
+    {
+        q: "Sumber daya (resources) dalam ekonomi adalah input untuk menghasilkan output. Yang BUKAN termasuk faktor produksi utama adalah...",
+        o: ["Tanah (Land)", "Tenaga Kerja (Labor)", "Konsumen (Consumer)", "Modal (Capital)"],
+        a: 2,
+        r: ["Faktor alam.", "Faktor manusia.", "Benar. Konsumen adalah pengguna output, bukan input produksi.", "Faktor alat/uang."],
+        m: "Modul 1"
+    },
+    {
+        q: "Indikator makroekonomi yang mengukur total nilai barang dan jasa yang dihasilkan suatu negara dalam periode tertentu adalah...",
+        o: ["IHK", "PDB (Produk Domestik Bruto)", "EoDB", "Gini Ratio"],
+        a: 1,
+        r: ["Indeks Harga Konsumen.", "Benar. PDB adalah indikator utama pertumbuhan ekonomi.", "Ease of Doing Business.", "Mengukur ketimpangan pendapatan."],
+        m: "Modul 1"
+    },
+
+    // MODUL 2: Konsep Bisnis (11-20)
+    {
+        q: "Revolusi Industri 4.0 ditandai dengan integrasi teknologi utama berupa...",
+        o: ["Mesin Uap dan Tenaga Air", "Listrik dan Lini Perakitan", "Komputer dan Otomatisasi", "Cyber-Physical Systems dan IoT"],
+        a: 3,
+        r: ["Industri 1.0", "Industri 2.0", "Industri 3.0", "Benar. Industri 4.0 berfokus pada konektivitas data dan IoT."],
+        m: "Modul 2"
+    },
+    {
+        q: "Bisnis yang kegiatannya mengambil kekayaan alam secara langsung tanpa mengubah bentuk pokoknya (contoh: pertambangan) disebut...",
+        o: ["Bisnis Agraris", "Bisnis Ekstraktif", "Bisnis Manufaktur", "Bisnis Jasa"],
+        a: 1,
+        r: ["Mengolah tanah (pertanian).", "Benar. Ekstraktif mengambil langsung dari alam.", "Mengolah bahan mentah jadi jadi.", "Menjual layanan."],
+        m: "Modul 2"
+    },
+    {
+        q: "Era di mana model bisnis lama terganggu oleh inovasi teknologi digital (contoh: ojek pangkalan vs Gojek) disebut...",
+        o: ["Era Globalisasi", "Era Industrialisasi", "Era Disrupsi", "Era Informasi"],
+        a: 2,
+        r: ["Integrasi mendunia.", "Perubahan ke industri.", "Benar. Disrupsi mengubah fundamental cara bisnis beroperasi.", "Era data."],
+        m: "Modul 2"
+    },
+    {
+        q: "Produk yang 'intangible' (tidak berwujud) namun dapat dirasakan manfaatnya adalah ciri dari...",
+        o: ["Tangible Goods", "Komoditas", "Jasa (Services)", "Barang Manufaktur"],
+        a: 2,
+        r: ["Barang berwujud.", "Bahan mentah.", "Benar. Jasa tidak bisa dilihat tapi bisa dirasakan.", "Barang jadi."],
+        m: "Modul 2"
+    },
+    {
+        q: "Bisnis yang kegiatannya membeli barang untuk dijual kembali tanpa mengubah bentuknya adalah...",
+        o: ["Bisnis Manufaktur", "Bisnis Perdagangan", "Bisnis Ekstraktif", "Bisnis Agraris"],
+        a: 1,
+        r: ["Mengolah barang.", "Benar. Perdagangan (Trading) hanya menyalurkan.", "Mengambil dari alam.", "Mengolah alam."],
+        m: "Modul 2"
+    },
+    {
+        q: "Strategi bisnis yang berorientasi etnosentris dalam bisnis internasional artinya...",
+        o: ["Menyesuaikan produk dengan pasar lokal", "Menganggap produk negara asal (home country) superior dan tidak perlu diubah", "Mencari bahan baku termurah di seluruh dunia", "Membangun pabrik di setiap negara"],
+        a: 1,
+        r: ["Polisentris.", "Benar. Etnosentris berpusat pada negara asal.", "Global sourcing.", "Desentralisasi."],
+        m: "Modul 2"
+    },
+    {
+        q: "Revolusi Industri 2.0 dipicu oleh penemuan...",
+        o: ["Mesin Uap", "Listrik dan Produksi Massal", "Transistor", "Internet"],
+        a: 1,
+        r: ["Revolusi 1.0", "Benar. Listrik memungkinkan assembly line (2.0).", "Revolusi 3.0", "Revolusi 4.0"],
+        m: "Modul 2"
+    },
+    {
+        q: "Ancaman (Threat) dalam lingkungan bisnis didefinisikan sebagai...",
+        o: ["Kondisi internal yang menghambat kinerja", "Perubahan lingkungan eksternal yang berpotensi merugikan", "Peluang pasar yang belum digarap", "Kekuatan modal perusahaan"],
+        a: 1,
+        r: ["Itu Weakness.", "Benar. Threat berasal dari eksternal dan berdampak negatif.", "Itu Opportunity.", "Itu Strength."],
+        m: "Modul 2"
+    },
+    {
+        q: "Konsep 'Direct Selling' berarti...",
+        o: ["Produsen menjual ke grosir", "Produsen menjual langsung ke konsumen tanpa perantara ritel", "Konsumen menjual ke konsumen lain", "Penjualan melalui lelang"],
+        a: 1,
+        r: ["Distribusi tidak langsung.", "Benar. Penjualan langsung memotong jalur distribusi.", "C2C.", "Auction."],
+        m: "Modul 2"
+    },
+    {
+        q: "Manakah yang BUKAN merupakan karakteristik utama Industri 4.0?",
+        o: ["Interoperabilitas", "Transparansi Informasi", "Tenaga kerja manusia intensif", "Keputusan terdesentralisasi"],
+        a: 2,
+        r: ["Ciri 4.0.", "Ciri 4.0.", "Benar. 4.0 justru mengurangi tenaga manual dengan otomatisasi.", "Ciri 4.0."],
+        m: "Modul 2"
+    },
+
+    // MODUL 3: Badan Usaha (21-30)
+    {
+        q: "Sekutu Komanditer (Silent Partner) dalam CV memiliki tanggung jawab...",
+        o: ["Tidak terbatas (sampai harta pribadi)", "Terbatas sebesar modal yang disetor", "Sama dengan sekutu aktif", "Bebas dari segala tuntutan"],
+        a: 1,
+        r: ["Tanggung jawab sekutu komplementer.", "Benar. Sekutu pasif hanya rugi modal.", "Salah.", "Tetap tanggung jawab sebatas modal."],
+        m: "Modul 3"
+    },
+    {
+        q: "Badan usaha yang seluruh modalnya berasal dari kekayaan negara yang dipisahkan dan mengutamakan pelayanan umum (public service) adalah...",
+        o: ["Perusahaan Jawatan (Perjan)", "Perusahaan Umum (Perum)", "Perseroan Terbatas (PT)", "Firma"],
+        a: 0,
+        r: ["Benar. Perjan fokus layanan, bukan laba (sekarang jarang).", "Perum mencari laba + layanan.", "PT mencari laba.", "Swasta."],
+        m: "Modul 3"
+    },
+    {
+        q: "Kekuasaan tertinggi dalam struktur organisasi Perseroan Terbatas (PT) berada pada...",
+        o: ["Direksi", "Dewan Komisaris", "RUPS (Rapat Umum Pemegang Saham)", "Manajer Umum"],
+        a: 2,
+        r: ["Pelaksana.", "Pengawas.", "Benar. RUPS adalah forum tertinggi penentu kebijakan.", "Operasional."],
+        m: "Modul 3"
+    },
+    {
+        q: "Perbedaan utama Firma dan CV adalah...",
+        o: ["Firma berbadan hukum, CV tidak", "Firma tanggung jawab terbatas, CV tidak", "Dalam CV ada sekutu aktif dan pasif, Firma semua aktif", "Modal Firma dari negara"],
+        a: 2,
+        r: ["Keduanya bukan badan hukum penuh (di Indonesia lama).", "Firma tanggung renteng.", "Benar. CV membedakan sekutu, Firma semua tanggung renteng.", "Salah."],
+        m: "Modul 3"
+    },
+    {
+        q: "BUMN yang berbentuk PT dan modalnya terbagi dalam saham di mana minimal 51% dimiliki negara disebut...",
+        o: ["Perum", "Persero", "Koperasi", "Yayasan"],
+        a: 1,
+        r: ["Tidak ada saham.", "Benar. Persero (PT Persero) berorientasi laba.", "Milik anggota.", "Sosial."],
+        m: "Modul 3"
+    },
+    {
+        q: "Badan hukum yang bertujuan sosial, keagamaan, dan kemanusiaan serta tidak mempunyai anggota adalah...",
+        o: ["Koperasi", "Yayasan", "Perum", "CV"],
+        a: 1,
+        r: ["Berbasis anggota.", "Benar. Yayasan adalah badan hukum non-profit tanpa anggota.", "BUMN.", "Persekutuan."],
+        m: "Modul 3"
+    },
+    {
+        q: "Kelemahan utama dari bentuk usaha perseorangan adalah...",
+        o: ["Keuntungan dibagi-bagi", "Tanggung jawab tidak terbatas (harta pribadi jadi jaminan)", "Pajak ganda", "Biaya pendirian mahal"],
+        a: 1,
+        r: ["Keuntungan dinikmati sendiri.", "Benar. Jika bangkrut, harta pribadi disita.", "Pajak tunggal.", "Pendirian termudah."],
+        m: "Modul 3"
+    },
+    {
+        q: "Badan usaha yang berlandaskan asas kekeluargaan dan bertujuan menyejahterakan anggota adalah...",
+        o: ["PT", "Firma", "Koperasi", "BUMN"],
+        a: 2,
+        r: ["Kapital.", "Persekutuan.", "Benar. Koperasi berbasis anggota dan kekeluargaan.", "Milik negara."],
+        m: "Modul 3"
+    },
+    {
+        q: "Manakah pernyataan yang BENAR mengenai Perseroan Terbatas (PT)?",
+        o: ["Merupakan persekutuan orang, bukan modal", "Bukan badan hukum", "Tanggung jawab pemegang saham terbatas", "Didirikan cukup dengan lisan"],
+        a: 2,
+        r: ["PT adalah persekutuan modal.", "PT adalah Badan Hukum.", "Benar. Limited Liability.", "Harus Akta Notaris."],
+        m: "Modul 3"
+    },
+    {
+        q: "Istilah 'Limited Liability' pada PT berarti...",
+        o: ["Pemilik bertanggung jawab hingga harta pribadi", "Pemilik hanya bertanggung jawab sebesar modal saham yang dimilikinya", "Perusahaan tidak boleh punya hutang", "Keuntungan perusahaan dibatasi"],
+        a: 1,
+        r: ["Unlimited Liability.", "Benar. Kerugian maksimal hanya sebatas saham hilang.", "Salah.", "Salah."],
+        m: "Modul 3"
+    },
+
+    // MODUL 4: Rencana Bisnis (31-40)
+    {
+        q: "Dokumen tertulis yang merinci rencana operasional, keuangan, dan pemasaran untuk mengeksploitasi peluang usaha disebut...",
+        o: ["Laporan Tahunan", "Business Plan", "Studi Kelayakan", "Anggaran Dasar"],
+        a: 1,
+        r: ["Laporan kinerja masa lalu.", "Benar. Business Plan berorientasi masa depan.", "Bagian dari perencanaan.", "Dokumen hukum."],
+        m: "Modul 4"
+    },
+    {
+        q: "Analisis SWOT digunakan untuk...",
+        o: ["Menghitung pajak perusahaan", "Memetakan lingkungan internal dan eksternal perusahaan", "Merekrut karyawan baru", "Menentukan harga pokok produksi"],
+        a: 1,
+        r: ["Akuntansi.", "Benar. Strength/Weakness (Internal) & Opportunity/Threat (Eksternal).", "HRD.", "Akuntansi."],
+        m: "Modul 4"
+    },
+    {
+        q: "Bagian 'Financial Plan' dalam Business Plan harus memuat...",
+        o: ["Struktur organisasi", "Strategi promosi", "Proyeksi arus kas (Cash Flow) dan Break Even Point", "Deskripsi produk"],
+        a: 2,
+        r: ["HR Plan.", "Marketing Plan.", "Benar. Terkait keuangan.", "Production Plan."],
+        m: "Modul 4"
+    },
+    {
+        q: "Menurut Robbins (2000), mode perencanaan di mana manajer bersifat adaptif dan terus menyesuaikan rencana dengan perubahan lingkungan disebut...",
+        o: ["Planning Mode", "Evolutionary Mode", "Reactive Mode", "Static Mode"],
+        a: 1,
+        r: ["Kaku/Terencana di awal.", "Benar. Evolusioner/berkembang seiring waktu.", "Hanya bereaksi.", "Tidak berubah."],
+        m: "Modul 4"
+    },
+    {
+        q: "Tujuan (Objectives) yang baik harus memenuhi kriteria SMART. Huruf 'M' berarti...",
+        o: ["Massive", "Measurable (Terukur)", "Mainstream", "Modest"],
+        a: 1,
+        r: ["Salah.", "Benar. Tujuan harus bisa diukur angkanya.", "Salah.", "Salah."],
+        m: "Modul 4"
+    },
+    {
+        q: "Visi perusahaan adalah...",
+        o: ["Langkah-langkah taktis harian", "Gambaran masa depan yang ingin dicapai (cita-cita)", "Cara mencapai tujuan", "Laporan laba rugi"],
+        a: 1,
+        r: ["Operasional.", "Benar. Visi adalah tujuan jangka panjang/impian.", "Misi.", "Keuangan."],
+        m: "Modul 4"
+    },
+    {
+        q: "Bagian Business Plan yang membahas tentang antisipasi risiko dan strategi pembubaran usaha jika gagal disebut...",
+        o: ["Executive Summary", "Exit Strategy", "Marketing Strategy", "Operational Plan"],
+        a: 1,
+        r: ["Ringkasan awal.", "Benar. Rencana keluar/darurat.", "Pemasaran.", "Operasional."],
+        m: "Modul 4"
+    },
+    {
+        q: "Executive Summary dalam Business Plan biasanya diletakkan di...",
+        o: ["Bagian Paling Akhir", "Bagian Paling Awal (Depan)", "Tengah dokumen", "Lampiran"],
+        a: 1,
+        r: ["Salah.", "Benar. Agar investor membaca intinya dulu.", "Salah.", "Salah."],
+        m: "Modul 4"
+    },
+    {
+        q: "Salah satu fungsi Business Plan bagi pihak eksternal (investor/bank) adalah...",
+        o: ["Pedoman operasional harian", "Alat untuk menilai kelayakan pemberian modal/kredit", "Syarat legalitas pendirian PT", "Alat evaluasi kinerja karyawan"],
+        a: 1,
+        r: ["Internal.", "Benar. Bank butuh proposal bisnis untuk cairkan dana.", "Itu Akta.", "Internal."],
+        m: "Modul 4"
+    },
+    {
+        q: "Perbedaan Visi dan Misi adalah...",
+        o: ["Visi adalah cara, Misi adalah tujuan", "Visi adalah gambaran masa depan, Misi adalah apa yang dilakukan saat ini untuk mencapainya", "Visi jangka pendek, Misi jangka panjang", "Tidak ada bedanya"],
+        a: 1,
+        r: ["Terbalik.", "Benar. Visi = Dream, Misi = Action.", "Terbalik.", "Beda."],
+        m: "Modul 4"
+    },
+
+    // MODUL 5: Manajemen Bisnis (41-50)
+    {
+        q: "Menurut Robert L. Katz, keahlian 'Conceptual Skills' paling dibutuhkan oleh...",
+        o: ["First-line Management", "Middle Management", "Top Management", "Supervisor"],
+        a: 2,
+        r: ["Butuh Technical Skills.", "Butuh Human Skills.", "Benar. Top Mgt butuh visi konseptual/strategis.", "Technical."],
+        m: "Modul 5"
+    },
+    {
+        q: "Peran manajer sebagai 'Disturbance Handler' (penangan gangguan) menurut Mintzberg termasuk dalam kategori peran...",
+        o: ["Interpersonal", "Informational", "Decisional", "Technical"],
+        a: 2,
+        r: ["Hubungan orang.", "Informasi.", "Benar. Mengambil keputusan saat ada masalah.", "Keahlian."],
+        m: "Modul 5"
+    },
+    {
+        q: "Fungsi manajemen untuk menempatkan orang yang tepat pada posisi yang tepat (The right man on the right place) disebut...",
+        o: ["Planning", "Organizing (Staffing)", "Actuating", "Controlling"],
+        a: 1,
+        r: ["Perencanaan.", "Benar. Pengorganisasian termasuk rekrutmen/staffing.", "Penggerakan.", "Pengawasan."],
+        m: "Modul 5"
+    },
+    {
+        q: "Kekuasaan yang dimiliki pemimpin karena karakteristik pribadi, kharisma, atau keteladanan disebut...",
+        o: ["Legitimate Power", "Coercive Power", "Referent Power", "Expert Power"],
+        a: 2,
+        r: ["Jabatan formal.", "Hukuman.", "Benar. Power of personality/rujukan.", "Keahlian."],
+        m: "Modul 5"
+    },
+    {
+        q: "Teori Hierarki Kebutuhan Maslow menempatkan kebutuhan tertinggi manusia sebagai...",
+        o: ["Fisiologis", "Rasa Aman", "Sosial", "Aktualisasi Diri"],
+        a: 3,
+        r: ["Dasar.", "Kedua.", "Ketiga.", "Benar. Puncak hierarki (potensi diri)."],
+        m: "Modul 5"
+    },
+    {
+        q: "Fungsi manajemen 'Controlling' (Pengendalian) bertujuan untuk...",
+        o: ["Membuat rencana baru", "Memastikan kinerja sesuai dengan rencana yang ditetapkan", "Merekrut karyawan", "Memotivasi bawahan"],
+        a: 1,
+        r: ["Planning.", "Benar. Membandingkan realisasi vs rencana.", "Organizing.", "Leading."],
+        m: "Modul 5"
+    },
+    {
+        q: "Manajemen tingkat bawah (First-line managers) seperti Supervisor lebih membutuhkan keahlian...",
+        o: ["Konseptual", "Teknis (Technical Skills)", "Strategis", "Abstrak"],
+        a: 1,
+        r: ["Top Level.", "Benar. Karena langsung menangani teknis operasional.", "Top Level.", "Top Level."],
+        m: "Modul 5"
+    },
+    {
+        q: "Gaya kepemimpinan yang memberikan kebebasan penuh kepada bawahan untuk mengambil keputusan disebut...",
+        o: ["Otoriter", "Demokratis", "Laissez-Faire (Free-rein)", "Transaksional"],
+        a: 2,
+        r: ["Pimpinan dominan.", "Musyawarah.", "Benar. Pimpinan lepas tangan.", "Berbasis reward/punishment."],
+        m: "Modul 5"
+    },
+    {
+        q: "Komunikasi yang bertujuan untuk mempengaruhi sikap dan perilaku orang lain disebut...",
+        o: ["Komunikasi Informatif", "Komunikasi Persuasif", "Komunikasi Searah", "Komunikasi Verbal"],
+        a: 1,
+        r: ["Memberi tahu.", "Benar. Mengajak/mempengaruhi.", "Tanpa feedback.", "Lisan/Tulis."],
+        m: "Modul 5"
+    },
+    {
+        q: "Sumber daya 'Intangible' dalam organisasi contohnya adalah...",
+        o: ["Gedung Pabrik", "Mesin Produksi", "Reputasi Brand dan Paten", "Uang Kas"],
+        a: 2,
+        r: ["Tangible.", "Tangible.", "Benar. Tidak berwujud fisik tapi bernilai.", "Tangible."],
+        m: "Modul 5"
+    },
+
+    // MODUL 6: Organisasi & Pemasaran (51-60)
+    {
+        q: "Struktur organisasi matriks memiliki kelemahan utama berupa...",
+        o: ["Biaya murah", "Dual Command (Rantai Komando Ganda) yang membingungkan", "Kurangnya spesialisasi", "Keputusan terlalu cepat"],
+        a: 1,
+        r: ["Biaya mahal.", "Benar. Karyawan punya 2 bos (Fungsional & Proyek).", "Spesialisasi tinggi.", "Lambat."],
+        m: "Modul 6"
+    },
+    {
+        q: "Konsep pemasaran yang berasumsi konsumen akan membeli produk jika harga murah dan tersedia di mana-mana adalah...",
+        o: ["Product Concept", "Production Concept", "Selling Concept", "Marketing Concept"],
+        a: 1,
+        r: ["Fokus kualitas.", "Benar. Fokus efisiensi produksi & distribusi massal.", "Fokus promosi.", "Fokus kebutuhan konsumen."],
+        m: "Modul 6"
+    },
+    {
+        q: "Strategi STP dalam pemasaran adalah singkatan dari...",
+        o: ["Sales, Target, Profit", "Segmenting, Targeting, Positioning", "Strategy, Tactic, Planning", "Strength, Threat, Power"],
+        a: 1,
+        r: ["Salah.", "Benar. Memilah pasar, memilih target, menempatkan citra.", "Salah.", "Salah."],
+        m: "Modul 6"
+    },
+    {
+        q: "Bauran Pemasaran (Marketing Mix) 4P terdiri dari...",
+        o: ["Product, Price, Promotion, Place", "People, Process, Power, Plan", "Product, Price, Profit, Plan", "Place, Promotion, People, Power"],
+        a: 0,
+        r: ["Benar. Produk, Harga, Promosi, Distribusi.", "Bauran Jasa (7P).", "Salah.", "Salah."],
+        m: "Modul 6"
+    },
+    {
+        q: "Departementalisasi berdasarkan wilayah geografis cocok untuk perusahaan yang...",
+        o: ["Menjual satu jenis produk di satu kota", "Memiliki wilayah pemasaran yang luas dan tersebar", "Hanya beroperasi secara online", "Memiliki sedikit karyawan"],
+        a: 1,
+        r: ["Cukup fungsional.", "Benar. Agar responsif terhadap kebutuhan lokal.", "Tidak butuh wilayah fisik.", "Sederhana."],
+        m: "Modul 6"
+    },
+    {
+        q: "Konsep 'Selling' (Penjualan) berbeda dengan 'Marketing' (Pemasaran) karena Selling berfokus pada...",
+        o: ["Kebutuhan pembeli", "Kebutuhan penjual untuk mengubah produk jadi uang", "Kepuasan jangka panjang", "Tanggung jawab sosial"],
+        a: 1,
+        r: ["Marketing concept.", "Benar. Selling = Hard sell apa yang punya.", "Marketing concept.", "Societal concept."],
+        m: "Modul 6"
+    },
+    {
+        q: "Dalam struktur organisasi fungsional, pengelompokan dilakukan berdasarkan...",
+        o: ["Produk yang dihasilkan", "Wilayah operasi", "Kesamaan aktivitas/keahlian (misal: Keuangan, Produksi)", "Tipe pelanggan"],
+        a: 2,
+        r: ["Divisional Produk.", "Divisional Geografis.", "Benar. Fungsional.", "Divisional Pelanggan."],
+        m: "Modul 6"
+    },
+    {
+        q: "Rapat Umum Pemegang Saham (RUPS) wajib diadakan minimal...",
+        o: ["Setiap bulan", "Setiap 6 bulan", "1 kali dalam setahun", "5 tahun sekali"],
+        a: 2,
+        r: ["Terlalu sering.", "Salah.", "Benar. RUPS Tahunan.", "Salah."],
+        m: "Modul 6"
+    },
+    {
+        q: "Nilai lebih yang diperoleh perusahaan dari selisih Total Revenue dan Total Cost disebut...",
+        o: ["Omzet", "Profit (Laba)", "Aset", "Ekuitas"],
+        a: 1,
+        r: ["Pendapatan kotor.", "Benar. TR - TC = Laba.", "Harta.", "Modal."],
+        m: "Modul 6"
+    },
+    {
+        q: "Posisi produk di benak konsumen dibandingkan dengan pesaing disebut...",
+        o: ["Segmenting", "Targeting", "Positioning", "Branding"],
+        a: 2,
+        r: ["Membagi pasar.", "Memilih pasar.", "Benar. Menancapkan persepsi.", "Memberi nama."],
+        m: "Modul 6"
+    },
+
+    // MODUL 7: Pembiayaan Usaha (61-70)
+    {
+        q: "Dalam Matriks Ansoff, strategi menjual produk LAMA ke pasar yang BARU disebut...",
+        o: ["Market Penetration", "Product Development", "Market Development", "Diversification"],
+        a: 2,
+        r: ["Produk lama, pasar lama.", "Produk baru, pasar lama.", "Benar. Mengembangkan pasar baru.", "Produk baru, pasar baru."],
+        m: "Modul 7"
+    },
+    {
+        q: "Perbedaan Saham dan Obligasi adalah...",
+        o: ["Saham adalah surat utang, Obligasi tanda kepemilikan", "Saham tanda kepemilikan, Obligasi surat pengakuan utang", "Saham bunganya tetap, Obligasi fluktuatif", "Obligasi tidak punya jatuh tempo"],
+        a: 1,
+        r: ["Terbalik.", "Benar. Saham = Equity, Obligasi = Debt.", "Obligasi kupon tetap, Saham dividen fluktuatif.", "Obligasi punya maturity date."],
+        m: "Modul 7"
+    },
+    {
+        q: "BPR (Bank Perkreditan Rakyat) dilarang melakukan kegiatan...",
+        o: ["Menghimpun deposito", "Memberikan kredit usaha", "Terlibat dalam lalu lintas pembayaran (Giro/Kliring)", "Menerima tabungan"],
+        a: 2,
+        r: ["Boleh.", "Boleh.", "Benar. BPR tidak boleh terima Giro dan ikut Kliring.", "Boleh."],
+        m: "Modul 7"
+    },
+    {
+        q: "Imbal hasil yang diterima pemegang saham dari keuntungan perusahaan disebut...",
+        o: ["Kupon", "Bunga", "Dividen", "Capital Gain"],
+        a: 2,
+        r: ["Untuk obligasi.", "Untuk tabungan/utang.", "Benar. Pembagian laba.", "Selisih harga jual-beli."],
+        m: "Modul 7"
+    },
+    {
+        q: "Pasar perdana (Primary Market) adalah...",
+        o: ["Tempat jual beli saham antar investor", "Tempat perusahaan pertama kali menjual saham ke publik (IPO)", "Pasar saham bekas", "Pasar gelap"],
+        a: 1,
+        r: ["Pasar Sekunder.", "Benar. Saat IPO terjadi.", "Pasar Sekunder.", "Ilegal."],
+        m: "Modul 7"
+    },
+    {
+        q: "Strategi 'Diversifikasi' dalam Matriks Ansoff memiliki risiko paling tinggi karena...",
+        o: ["Produk sudah dikenal", "Pasar sudah dikenal", "Melibatkan produk baru di pasar yang benar-benar baru", "Biayanya murah"],
+        a: 2,
+        r: ["Penetrasi.", "Pengembangan Produk.", "Benar. Ketidakpastian ganda.", "Mahal."],
+        m: "Modul 7"
+    },
+    {
+        q: "Sumber pembiayaan internal perusahaan berasal dari...",
+        o: ["Kredit Bank", "Penerbitan Obligasi", "Laba Ditahan (Retained Earnings)", "Modal Ventura"],
+        a: 2,
+        r: ["Eksternal (Utang).", "Eksternal (Utang).", "Benar. Laba yang diputar kembali.", "Eksternal (Equity)."],
+        m: "Modul 7"
+    },
+    {
+        q: "Lembaga yang berfungsi sebagai pengawas pasar modal di Indonesia (dulu Bapepam-LK) sekarang adalah...",
+        o: ["Bank Indonesia", "OJK (Otoritas Jasa Keuangan)", "Kementerian Keuangan", "Bursa Efek Indonesia"],
+        a: 1,
+        r: ["Moneter.", "Benar. Pengawas industri keuangan terintegrasi.", "Fiskal.", "Fasilitator perdagangan."],
+        m: "Modul 7"
+    },
+    {
+        q: "Venture Capital (Modal Ventura) biasanya membiayai jenis perusahaan...",
+        o: ["Perusahaan tua yang stabil", "Start-up yang berisiko tinggi namun berpotensi tumbuh pesat", "BUMN", "Koperasi"],
+        a: 1,
+        r: ["Bank lebih suka ini.", "Benar. High risk high return.", "Pemerintah.", "Anggota."],
+        m: "Modul 7"
+    },
+    {
+        q: "Titik di mana Total Revenue sama dengan Total Cost (tidak untung tidak rugi) disebut...",
+        o: ["ROI", "Break Even Point (BEP)", "Net Present Value", "Profit Margin"],
+        a: 1,
+        r: ["Return on Investment.", "Benar. Titik Impas.", "Nilai waktu uang.", "Persentase laba."],
+        m: "Modul 7"
+    },
+
+    // MODUL 8: Lingkungan Usaha (71-80)
+    {
+        q: "Analisis PEST adalah alat untuk menganalisis lingkungan makro. PEST singkatan dari...",
+        o: ["Product, Economic, Sales, Tech", "Political, Economic, Social, Technological", "Place, Environment, Strategy, Time", "People, Energy, System, Target"],
+        a: 1,
+        r: ["Salah.", "Benar. Faktor politik, ekonomi, sosial, teknologi.", "Salah.", "Salah."],
+        m: "Modul 8"
+    },
+    {
+        q: "Stakeholder (Pemangku Kepentingan) didefinisikan sebagai...",
+        o: ["Hanya pemegang saham", "Hanya karyawan perusahaan", "Semua pihak yang mempengaruhi atau dipengaruhi oleh pencapaian tujuan perusahaan", "Hanya konsumen"],
+        a: 2,
+        r: ["Shareholder.", "Internal.", "Benar. Definisi luas Freeman.", "Eksternal."],
+        m: "Modul 8"
+    },
+    {
+        q: "Manakah yang termasuk dalam 'Task Environment' (Lingkungan Tugas/Mikro)?",
+        o: ["Kondisi Ekonomi Global", "Perubahan Teknologi", "Pesaing dan Pemasok", "Demografi Penduduk"],
+        a: 2,
+        r: ["General.", "General.", "Benar. Berinteraksi langsung dengan perusahaan.", "General."],
+        m: "Modul 8"
+    },
+    {
+        q: "Shareholder (Pemegang Saham) termasuk dalam kategori...",
+        o: ["Outside Stakeholders", "Inside Stakeholders", "Secondary Stakeholders", "Government Stakeholders"],
+        a: 1,
+        r: ["Pemasok/Pelanggan.", "Benar. Pemilik ada di dalam struktur kekuasaan.", "Masyarakat.", "Regulator."],
+        m: "Modul 8"
+    },
+    {
+        q: "Pelanggan (Customer) termasuk dalam kategori...",
+        o: ["Inside Stakeholders", "Outside Stakeholders", "Management", "Owner"],
+        a: 1,
+        r: ["Karyawan.", "Benar. Pihak eksternal yang membeli produk.", "Internal.", "Internal."],
+        m: "Modul 8"
+    },
+    {
+        q: "Analisis STEEPLE adalah pengembangan dari PEST dengan tambahan unsur...",
+        o: ["Environmental, Legal, Ethical", "Energy, Labor, Equipment", "Education, Law, Engineering", "Economy, Level, Entry"],
+        a: 0,
+        r: ["Benar. Lingkungan, Hukum, Etika.", "Salah.", "Salah.", "Salah."],
+        m: "Modul 8"
+    },
+    {
+        q: "Kekuatan ekonomi yang mempengaruhi bisnis secara umum (General Environment) contohnya adalah...",
+        o: ["Pemogokan kerja karyawan pabrik", "Kenaikan harga BBM dan Inflasi", "Strategi harga pesaing", "Keluhan pelanggan"],
+        a: 1,
+        r: ["Internal.", "Benar. Faktor makro ekonomi.", "Task environment.", "Task environment."],
+        m: "Modul 8"
+    },
+    {
+        q: "Hubungan timbal balik antara perusahaan dan pemerintah di mana perusahaan membayar pajak dan pemerintah menyediakan infrastruktur adalah contoh interaksi dengan...",
+        o: ["Primary Stakeholder", "Secondary Stakeholder", "Internal Stakeholder", "Silent Stakeholder"],
+        a: 0,
+        r: ["Benar. Pemerintah krusial bagi kelangsungan bisnis.", "Media/LSM.", "Karyawan.", "Salah."],
+        m: "Modul 8"
+    },
+    {
+        q: "Generasi milenial yang mengubah tren konsumsi adalah contoh kekuatan lingkungan...",
+        o: ["Politik", "Ekonomi", "Sosiokultural (Demografi)", "Teknologi"],
+        a: 2,
+        r: ["Regulasi.", "Uang.", "Benar. Perubahan perilaku masyarakat.", "Alat."],
+        m: "Modul 8"
+    },
+    {
+        q: "Pesaing (Competitors) mempengaruhi perusahaan dalam hal...",
+        o: ["Penentuan suku bunga", "Perebutan pangsa pasar dan penetapan harga", "Pembuatan undang-undang", "Pencetakan uang"],
+        a: 1,
+        r: ["Bank Sentral.", "Benar. Kompetisi langsung.", "DPR.", "BI."],
+        m: "Modul 8"
+    },
+
+    // MODUL 9: Etika & CSR (81-90)
+    {
+        q: "Pandangan Milton Friedman tentang CSR adalah...",
+        o: ["Perusahaan harus menyumbang 50% laba", "Satu-satunya tanggung jawab sosial bisnis adalah memaksimalkan laba (Profit Maximization) dalam koridor hukum", "Manajer harus memprioritaskan lingkungan daripada pemegang saham", "Bisnis adalah lembaga amal"],
+        a: 1,
+        r: ["Salah.", "Benar. Friedman menolak CSR yang mengurangi profit pemilik.", "Salah.", "Salah."],
+        m: "Modul 9"
+    },
+    {
+        q: "Praktik 'Window Dressing' dalam etika keuangan adalah...",
+        o: ["Mendekorasi kantor agar menarik", "Memanipulasi laporan keuangan agar terlihat lebih sehat dari aslinya", "Memberikan diskon palsu", "Menyuap pejabat"],
+        a: 1,
+        r: ["Harfiah.", "Benar. Penipuan akuntansi.", "Marketing deception.", "Bribery."],
+        m: "Modul 9"
+    },
+    {
+        q: "Tanggung jawab sosial perusahaan yang bersifat 'Discretionary' (Philanthropic) menurut Archie Carroll adalah...",
+        o: ["Wajib dilakukan demi hukum", "Dilakukan agar untung", "Sukarela, untuk kebaikan komunitas (amal)", "Dasar etika"],
+        a: 2,
+        r: ["Legal.", "Economic.", "Benar. Tingkatan tertinggi/sukarela.", "Ethical."],
+        m: "Modul 9"
+    },
+    {
+        q: "Konflik kepentingan (Conflict of Interest) terjadi ketika...",
+        o: ["Perusahaan rugi", "Kepentingan pribadi karyawan bertentangan dengan kepentingan perusahaan", "Pesaing menurunkan harga", "Pemerintah menaikkan pajak"],
+        a: 1,
+        r: ["Bisnis biasa.", "Benar. Masalah etika internal.", "Kompetisi.", "Regulasi."],
+        m: "Modul 9"
+    },
+    {
+        q: "Dasar dari 'Etika Bisnis' menurut H.R. Bowen adalah...",
+        o: ["Kontrak sosial dan keselarasan nilai perusahaan dengan masyarakat", "Hukum rimba", "Keuntungan sebesar-besarnya", "Efisiensi mesin"],
+        a: 0,
+        r: ["Benar. Bisnis ada karena izin masyarakat.", "Salah.", "Salah.", "Salah."],
+        m: "Modul 9"
+    },
+    {
+        q: "Tingkatan tanggung jawab sosial paling dasar (pondasi) dalam Piramida CSR Carroll adalah...",
+        o: ["Legal Responsibility", "Ethical Responsibility", "Economic Responsibility (Mencari Laba)", "Philanthropic Responsibility"],
+        a: 2,
+        r: ["Lapis 2.", "Lapis 3.", "Benar. Bisnis harus untung dulu baru bisa beramal.", "Lapis 4."],
+        m: "Modul 9"
+    },
+    {
+        q: "Insider Trading adalah pelanggaran etika di pasar modal berupa...",
+        o: ["Jual beli saham secara legal", "Menggunakan informasi orang dalam yang belum publik untuk keuntungan pribadi", "Membayar dividen terlambat", "Investasi bodong"],
+        a: 1,
+        r: ["Normal.", "Benar. Ilegal dan tidak etis.", "Administratif.", "Fraud."],
+        m: "Modul 9"
+    },
+    {
+        q: "Whistleblowing adalah tindakan...",
+        o: ["Meniup peluit saat bekerja", "Karyawan melaporkan tindakan ilegal/tidak etis di dalam perusahaan", "Membocorkan rahasia dagang ke pesaing", "Mempromosikan produk"],
+        a: 1,
+        r: ["Harfiah.", "Benar. Pengungkapan fakta demi kebenaran.", "Spionase.", "Marketing."],
+        m: "Modul 9"
+    },
+    {
+        q: "Faktor penyebab pelanggaran etika 'Pressure on Profits' artinya...",
+        o: ["Karyawan serakah", "Tekanan target laba yang tidak realistis memaksa karyawan bertindak curang", "Perbedaan budaya", "Kurangnya aturan"],
+        a: 1,
+        r: ["Personal gain.", "Benar. Atasan menekan bawahan halalkan segala cara.", "Cultural.", "Legal."],
+        m: "Modul 9"
+    },
+    {
+        q: "Good Corporate Governance (GCG) bertujuan untuk...",
+        o: ["Menghindari pajak", "Menciptakan tata kelola perusahaan yang transparan, akuntabel, dan adil", "Memaksimalkan gaji direksi", "Menguasai pasar monopoli"],
+        a: 1,
+        r: ["Ilegal.", "Benar. Prinsip TARIF (Transparency, Accountability, dll).", "Salah.", "Salah."],
+        m: "Modul 9"
+    },
+
+    // SOAL TAMBAHAN CAMPURAN (91-100) - Memastikan total 100
+    {
+        q: "Elastisitas harga permintaan mengukur...",
+        o: ["Perubahan jumlah penawaran akibat harga", "Sensitivitas perubahan jumlah permintaan akibat perubahan harga", "Kecepatan produksi", "Inflasi"],
+        a: 1,
+        r: ["Elastisitas penawaran.", "Benar. Konsep ekonomi mikro.", "Produksi.", "Makro."],
+        m: "Modul 1"
+    },
+    {
+        q: "Joint Venture adalah bentuk kerjasama bisnis internasional berupa...",
+        o: ["Ekspor langsung", "Pemberian lisensi", "Pembentukan perusahaan baru patungan antara dua pihak atau lebih", "Pembelian saham minoritas"],
+        a: 2,
+        r: ["Trading.", "Licensing.", "Benar. Mitra lokal dan asing bikin PT baru.", "Portfolio inv."],
+        m: "Modul 2"
+    },
+    {
+        q: "Franchising (Waralaba) adalah contoh dari...",
+        o: ["Bisnis Ekstraktif", "Pemberian hak menggunakan merek/sistem dengan membayar royalti", "Investasi bodong", "Koperasi"],
+        a: 1,
+        r: ["Salah.", "Benar. Contoh: McD, Indomaret.", "Salah.", "Salah."],
+        m: "Modul 2"
+    },
+    {
+        q: "Break Even Point (BEP) tercapai ketika...",
+        o: ["Total Revenue > Total Cost", "Total Revenue < Total Cost", "Total Revenue = Total Cost", "Fixed Cost = Variable Cost"],
+        a: 2,
+        r: ["Untung.", "Rugi.", "Benar. Impas.", "Salah."],
+        m: "Modul 7"
+    },
+    {
+        q: "Manajemen Sumber Daya Manusia (MSDM) strategis berfokus pada...",
+        o: ["Administrasi gaji semata", "Menyelaraskan SDM dengan tujuan jangka panjang perusahaan", "Menghukum karyawan malas", "Pensiun dini"],
+        a: 1,
+        r: ["Tradisional.", "Benar. SDM sebagai aset strategis.", "Teknis.", "Teknis."],
+        m: "Modul 5"
+    },
+    {
+        q: "Supply Chain Management (SCM) mengelola...",
+        o: ["Aliran dana saja", "Aliran barang, informasi, dan uang dari pemasok hulu hingga konsumen akhir", "Promosi produk", "Rekrutmen"],
+        a: 1,
+        r: ["Finance.", "Benar. Rantai pasok terintegrasi.", "Marketing.", "HR."],
+        m: "Modul 5"
+    },
+    {
+        q: "Dalam siklus hidup produk (Product Life Cycle), tahap di mana penjualan mulai turun drastis disebut...",
+        o: ["Introduction", "Growth", "Maturity", "Decline"],
+        a: 3,
+        r: ["Perkenalan.", "Pertumbuhan.", "Dewasa/Puncak.", "Benar. Penurunan."],
+        m: "Modul 6"
+    },
+    {
+        q: "Segmentasi Demografis membagi pasar berdasarkan...",
+        o: ["Gaya hidup dan kepribadian", "Wilayah tempat tinggal", "Usia, gender, pendapatan, pendidikan", "Manfaat produk"],
+        a: 2,
+        r: ["Psikografis.", "Geografis.", "Benar. Data kependudukan.", "Perilaku."],
+        m: "Modul 6"
+    },
+    {
+        q: "Koperasi yang anggotanya adalah produsen/pengusaha kecil disebut...",
+        o: ["Koperasi Konsumsi", "Koperasi Simpan Pinjam", "Koperasi Produksi", "Koperasi Sekolah"],
+        a: 2,
+        r: ["Menjual barang kebutuhan.", "Bank mini.", "Benar. Mengolah/memasarkan hasil produksi anggota.", "Siswa."],
+        m: "Modul 3"
+    },
+    {
+        q: "Tujuan utama Manajemen Keuangan adalah...",
+        o: ["Memaksimalkan penjualan", "Memaksimalkan nilai perusahaan (kemakmuran pemegang saham)", "Menghindari pajak", "Menyimpan uang tunai sebanyak-banyaknya"],
+        a: 1,
+        r: ["Marketing.", "Benar. Wealth maximization.", "Ilegal.", "Tidak efisien."],
+        m: "Modul 7"
+    }
+];
+
+// GENERATE 100 SOAL DENGAN PENGACAKAN
+let questionBank = [];
+function initDB() {
+    // 1. Ambil 100 soal asli dari rawData
+    questionBank = [...rawData]; 
+    
+    // 2. Acak urutan soal (Shuffle) agar setiap kali ujian beda urutan
+    for (let i = questionBank.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questionBank[i], questionBank[j]] = [questionBank[j], questionBank[i]];
+    }
+}
+
+// STATE APPS
+let currentIdx = 0;
+let userAnswers = new Array(100).fill(null);
+let timerVal = 90 * 60; // 90 Menit
+let timerRef;
+
+const els = {
+    app: document.getElementById('app-root'),
+    startOverlay: document.getElementById('start-overlay'),
+    resultOverlay: document.getElementById('result-overlay'),
+    resultCard: document.getElementById('result-card'),
+    questionArea: document.getElementById('question-area'),
+    rationaleArea: document.getElementById('rationale-area'),
+    timer: document.getElementById('timer'),
+    progressText: document.getElementById('progress-text'),
+    progressBar: document.getElementById('progress-bar'),
+    btnNext: document.getElementById('btn-next'),
+    btnPrev: document.getElementById('btn-prev'),
+    btnFinish: document.getElementById('btn-finish'),
+    scoreFinal: document.getElementById('score-final'),
+    countCorrect: document.getElementById('count-correct'),
+    countWrong: document.getElementById('count-wrong')
+};
+
+function startExam() {
+    initDB();
+    els.startOverlay.classList.add('hidden');
+    timerRef = setInterval(() => {
+        timerVal--;
+        const m = Math.floor(timerVal / 60);
+        const s = timerVal % 60;
+        els.timer.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+        if(timerVal <= 0) finishExam();
+    }, 1000);
+    renderQuestion(0);
+}
+
+function renderQuestion(idx) {
+    currentIdx = idx;
+    const data = questionBank[idx];
+    const answeredVal = userAnswers[idx];
+
+    els.progressText.innerText = `SOAL ${idx + 1}/100`;
+    els.progressBar.style.width = `${((idx + 1) / 100) * 100}%`;
+
+    // Reset Animasi
+    els.questionArea.style.animation = 'none';
+    els.questionArea.offsetHeight;
+    els.questionArea.style.animation = null;
+
+    let html = `
+        <div class="mb-4">
+            <span class="inline-block bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-1 rounded mb-2 uppercase tracking-wide">${data.m}</span>
+            <h2 class="text-lg font-bold text-slate-800 leading-relaxed">${data.q}</h2>
+        </div>
+        <div class="space-y-3">
+    `;
+
+    const labels = ['A', 'B', 'C', 'D'];
+    data.o.forEach((opt, i) => {
+        let btnClass = "w-full text-left p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center gap-3 transition-all";
+        let markerClass = "w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold flex items-center justify-center text-sm border border-slate-200";
+        
+        if (answeredVal !== null) {
+            if (i === data.a) {
+                btnClass = "w-full text-left p-4 rounded-xl border-2 border-green-500 bg-green-50 shadow-sm flex items-center gap-3";
+                markerClass = "w-8 h-8 rounded-full bg-green-500 text-white font-bold flex items-center justify-center text-sm";
+            } else if (i === answeredVal && i !== data.a) {
+                btnClass = "w-full text-left p-4 rounded-xl border-2 border-red-500 bg-red-50 shadow-sm flex items-center gap-3";
+                markerClass = "w-8 h-8 rounded-full bg-red-500 text-white font-bold flex items-center justify-center text-sm";
+            } else {
+                btnClass += " opacity-50 grayscale";
+            }
+        } else {
+            btnClass += " hover:border-primary-400 hover:shadow-md active:scale-[0.99] cursor-pointer";
+        }
+        
+        const clickEvent = answeredVal === null ? `onclick="handleAnswer(${idx}, ${i})"` : "";
+        html += `<button ${clickEvent} class="${btnClass}"><div class="${markerClass}">${labels[i]}</div><span class="text-sm font-medium text-slate-700 flex-1">${opt}</span></button>`;
+    });
+    html += `</div>`;
+    els.questionArea.innerHTML = html;
+
+    if (answeredVal !== null) {
+        renderRationale(data, answeredVal);
+        els.rationaleArea.classList.remove('hidden');
+    } else {
+        els.rationaleArea.classList.add('hidden');
+    }
+
+    els.btnPrev.disabled = (idx === 0);
+    if (idx === 99) {
+        els.btnNext.classList.add('hidden');
+        els.btnFinish.classList.remove('hidden');
+    } else {
+        els.btnNext.classList.remove('hidden');
+        els.btnFinish.classList.add('hidden');
+    }
+    
+    document.getElementById('main-scroll').scrollTop = 0;
+}
+
+function handleAnswer(qIdx, ansIdx) {
+    userAnswers[qIdx] = ansIdx;
+    renderQuestion(qIdx);
+    setTimeout(() => { els.rationaleArea.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 100);
+}
+
+function renderRationale(data, userAns) {
+    const isCorrect = userAns === data.a;
+    const labels = ['A', 'B', 'C', 'D'];
+    let html = '';
+
+    if (isCorrect) {
+        html += `<div class="bg-green-100 text-green-800 p-4 rounded-xl flex items-center gap-3 border border-green-200 mb-4 shadow-sm"><span class="text-2xl">🎉</span><div><div class="font-bold text-sm">Jawaban Benar!</div></div></div>`;
+    } else {
+        html += `<div class="bg-red-50 text-red-800 p-4 rounded-xl flex items-center gap-3 border border-red-200 mb-4 shadow-sm"><span class="text-2xl">⚠️</span><div><div class="font-bold text-sm">Jawaban Salah</div></div></div>`;
+        html += `
+            <div class="bg-white border-l-4 border-red-500 shadow-card rounded-r-xl p-4 mb-4">
+                <div class="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">ANALISIS JAWABAN ANDA (${labels[userAns]})</div>
+                <div class="text-sm text-slate-400 line-through decoration-red-500 decoration-2 mb-2">"${data.o[userAns]}"</div>
+                <div class="text-sm text-slate-700 leading-relaxed bg-red-50/50 p-2 rounded"><span class="font-bold text-red-600">Alasan:</span> ${data.r[userAns]}</div>
+            </div>`;
+    }
+
+    html += `
+        <div class="bg-white border-l-4 border-green-500 shadow-card rounded-r-xl p-4">
+            <div class="text-[10px] font-bold text-green-600 uppercase tracking-wider mb-1">KUNCI JAWABAN (${labels[data.a]})</div>
+            <div class="text-sm font-bold text-slate-800 mb-2">"${data.o[data.a]}"</div>
+            <div class="text-sm text-slate-700 leading-relaxed bg-green-50/50 p-2 rounded"><span class="font-bold text-green-600">Penjelasan:</span> ${data.r[data.a]}</div>
+        </div>`;
+    els.rationaleArea.innerHTML = html;
+}
+
+function nextQuestion() { if (currentIdx < 99) renderQuestion(currentIdx + 1); }
+function prevQuestion() { if (currentIdx > 0) renderQuestion(currentIdx - 1); }
+
+function finishExam() {
+    clearInterval(timerRef);
+    let score = 0;
+    userAnswers.forEach((ans, i) => { if (ans === questionBank[i].a) score++; });
+    els.scoreFinal.innerText = score;
+    els.countCorrect.innerText = score;
+    els.countWrong.innerText = 100 - score;
+    els.resultOverlay.classList.remove('hidden');
+    els.resultOverlay.classList.add('flex');
+    setTimeout(() => {
+        els.resultOverlay.classList.remove('opacity-0');
+        els.resultCard.classList.remove('scale-95');
+        els.resultCard.classList.add('scale-100');
+    }, 50);
+}
+</script>
+</body>
+</html>
+
